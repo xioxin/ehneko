@@ -83,13 +83,14 @@ class EH {
       final length = data.length;
       log.info("[$gid/$token] ${data.title}");
       final indexList = getRange(imageRange, length: length);
+      int n = 1;
       for (int index in indexList) {
         final item = await gallery.getImageInfo(index);
         final imageInfo = await item.getImageInfo();
         final fileName =
             '${imageInfo.currentPage.toString().padLeft(3, '0')}-${imageInfo.fileName}';
         log.info(
-            "[$gid/$token] ($index/$length) Download Image ${imageInfo.image} => $fileName");
+            "[$gid/$token/$index] (${n++}/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
         await getDio()
             .download(imageInfo.image, p.join(galleryDir.path, fileName));
       }
@@ -211,4 +212,3 @@ dynamic myEncode(dynamic item) {
   }
   return item;
 }
-

@@ -31,7 +31,7 @@ addCommonCommand(ArgParser argParser) {
       abbr: 'o', help: '输出目录<!!WIP!!>', valueHelp: "./output");
   argParser.addOption('cookie', abbr: 'c', help: 'Cookie凭证');
   argParser.addFlag('domain-fronting',
-      abbr: 'D', negatable: false, help: '开启域名前置');
+      abbr: 'd', negatable: false, help: '开启域名前置');
   argParser.addFlag('force', negatable: false, abbr: 'f', help: '覆盖已有数据');
   argParser.addFlag('no-proxy', negatable: false, abbr: 'P', help: '禁用代理');
   argParser.addOption('proxy',
@@ -47,8 +47,8 @@ class BatchCommand extends Command {
     argParser.addOption('pages',
         abbr: 'p', help: '页码范围(!!WIP!!)', valueHelp: '0:9');
     argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
-    argParser.addOption('delay',
-        abbr: 'd', help: '任务开始时间不低于这个时间(ms)', valueHelp: '1000');
+    // argParser.addOption('delay',
+    //     abbr: 'd', help: '多任务速度不超过这个(ms)', valueHelp: '1000');
     argParser.addOption('range',
         abbr: 'r',
         help:
@@ -60,7 +60,7 @@ class BatchCommand extends Command {
   @override
   void run() {
     EH.parallel = int.tryParse(argResults!['parallel'] ?? '');
-    EH.delay = int.tryParse(argResults!['delay'] ?? '');
+    // EH.delay = int.tryParse(argResults!['delay'] ?? '');
     EH.noProxy = argResults!['no-proxy'];
     EH.proxy = argResults!['proxy'];
     EH.domainFronting = argResults!['domain-fronting'];
