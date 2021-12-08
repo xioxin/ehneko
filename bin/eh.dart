@@ -29,7 +29,7 @@ void main(List<String> arguments) async {
 addCommonCommand(ArgParser argParser) {
   argParser.addOption('output',
       abbr: 'o', help: '输出目录<!!WIP!!>', valueHelp: "./output");
-  argParser.addOption('cookie', abbr: 'c', help: 'Cookie凭证<!!WIP!!>');
+  argParser.addOption('cookie', abbr: 'c', help: 'Cookie凭证');
   argParser.addFlag('domain-fronting',
       abbr: 'D', negatable: false, help: '开启域名前置');
   argParser.addFlag('force', negatable: false, abbr: 'f', help: '覆盖已有数据');
