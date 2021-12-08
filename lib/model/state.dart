@@ -9,6 +9,7 @@ class EhState extends Object {
   bool error;
   String? errorMsg;
   String? stackTrace;
+  String? range;
 
   EhState({
     required this.gid,
@@ -17,6 +18,7 @@ class EhState extends Object {
     this.error = false,
     this.errorMsg,
     this.stackTrace,
+    this.range,
   });
 
   factory EhState.fromJson(Map<String, dynamic> srcJson) =>

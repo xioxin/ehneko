@@ -86,3 +86,11 @@ class MyPrettyPrinter extends LoggyPrinter {
     return _levelColors[level];
   }
 }
+
+class GlobalLoggy implements LoggyType {
+  @override
+  Loggy<GlobalLoggy> get loggy =>
+      Loggy<GlobalLoggy>('EhNeko - ${runtimeType.toString()}');
+}
+
+Loggy get log => Loggy<GlobalLoggy>('EhNeko');

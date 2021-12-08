@@ -264,10 +264,10 @@ class GalleryImage extends Object {
 @JsonSerializable()
 class GalleryList extends Object {
   @JsonKey(name: 'currentPage')
-  int currentPage;
+  int? currentPage;
 
   @JsonKey(name: 'displayMode')
-  DisplayMode displayMode;
+  DisplayMode? displayMode;
 
   @JsonKey(name: 'items')
   List<GalleryListItem> items;

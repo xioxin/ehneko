@@ -8,6 +8,7 @@ import 'package:loggy/loggy.dart';
 import 'package:path/path.dart' as p;
 import 'package:queue/queue.dart';
 
+import 'log.dart';
 import 'model/gallery.dart';
 import 'model/state.dart';
 
@@ -26,6 +27,8 @@ class EH {
 
   static String? imageRange;
 
+  static bool force = false;
+
   static loadConfig() {}
 
   static Queue? _queue;
@@ -36,8 +39,9 @@ class EH {
     return _queue!;
   }
 
-  static downloadGallery(String url) async {
-    logInfo("[START] $url");
+  static downloadGallery(String url, {String? imageRange}) async {
+    imageRange ??= ':';
+    log.info("[START] $url");
     final uri = Uri.parse(url);
     if (uri.pathSegments.length < 3) throw "Unrecognized link address";
     if (uri.pathSegments.first != 'g') throw "Unrecognized link address";
@@ -47,6 +51,12 @@ class EH {
     final galleryDir = Directory(p.join(outputDir.path, '$gid-$token'));
     if (!galleryDir.existsSync()) {
       galleryDir.createSync(recursive: true);
+    } else {
+      if (EH.force) {
+        log.info("[$gid/$token] File already exists. Delete file !!!");
+        galleryDir.deleteSync(recursive: true);
+        galleryDir.createSync(recursive: true);
+      }
     }
     final stateFile = File(p.join(galleryDir.path, 'state.json'));
     final metaFile = File(p.join(galleryDir.path, 'meta.json'));
@@ -54,44 +64,56 @@ class EH {
       final stateText = await stateFile.readAsString();
       final state = EhState.fromJson(JsonDecoder().convert(stateText));
       if (state.complete) {
-        logInfo("[$gid/$token] SKIP, File already exists");
+        log.info("[$gid/$token] SKIP, File already exists");
         return;
       }
     }
 
+    final state = EhState(
+        gid: gid,
+        token: token,
+        complete: false,
+        error: false,
+        range: imageRange);
+    await stateFile.writeAsString(JsonEncoder.withIndent('  ').convert(state));
+
     try {
       final gallery = GalleryController(gid, token, host: uri.host);
-      final length = await gallery.getLength();
-      final indexList = getRange(EH.imageRange ?? ':', length: length);
+      final data = await gallery.firstData();
+      final length = data.length;
+      log.info("[$gid/$token] ${data.title}");
+      final indexList = getRange(imageRange, length: length);
       for (int index in indexList) {
-        logInfo("[$gid/$token/$index] Load Info");
         final item = await gallery.getImageInfo(index);
         final imageInfo = await item.getImageInfo();
         final fileName =
             '${imageInfo.currentPage.toString().padLeft(3, '0')}-${imageInfo.fileName}';
-        logInfo(
-            "[$gid/$token/$index] Download Image ${imageInfo.image} => $fileName");
-
+        log.info(
+            "[$gid/$token] ($index/$length) Download Image ${imageInfo.image} => $fileName");
         await getDio()
             .download(imageInfo.image, p.join(galleryDir.path, fileName));
       }
-      logInfo("[$gid/$token] Save Meta Data");
-
+      log.info("[$gid/$token] Save Meta Data");
       metaFile.writeAsStringSync(JsonEncoder.withIndent('  ', myEncode)
           .convert(await gallery.getMixData()));
 
-      final state =
-          EhState(gid: gid, token: token, complete: true, error: false);
+      final state = EhState(
+          gid: gid,
+          token: token,
+          complete: true,
+          error: false,
+          range: imageRange);
       await stateFile
           .writeAsString(JsonEncoder.withIndent('  ').convert(state));
     } catch (e, stacktrace) {
-      logError("[$gid/$token] $e\n$stacktrace");
+      log.error("[$gid/$token] $e", e, stacktrace);
       final state = EhState(
           gid: gid,
           token: token,
           complete: false,
           error: true,
           errorMsg: e.toString(),
+          range: imageRange,
           stackTrace: stacktrace.toString());
       await stateFile
           .writeAsString(JsonEncoder.withIndent('  ').convert(state));
@@ -104,9 +126,12 @@ class EH {
     final controller = getScraperController();
     final parser = await controller.loadUri(uri);
     final galleryList = GalleryList.fromJson(parser.parse()!);
+    if (galleryList.items.isEmpty) {
+      log.info("[$url] GalleryListIsEmpty");
+    }
     for (var item in galleryList.items) {
       queue.add(() async {
-        await downloadGallery(item.href);
+        await downloadGallery(item.href, imageRange: EH.imageRange);
       });
     }
   }
@@ -186,3 +211,4 @@ dynamic myEncode(dynamic item) {
   }
   return item;
 }
+

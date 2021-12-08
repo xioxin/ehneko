@@ -4,9 +4,13 @@ import 'dart:io';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
+import 'package:eh/log.dart';
 import 'package:scraper/scraper.dart';
 import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+
+import 'eh.dart';
 
 ScraperController? controller;
 
@@ -30,13 +34,27 @@ Dio getDio() {
   if (dio != null) return dio!;
   final Map<String, String> env = Platform.environment;
 
-  // final String? httpProxy = env['http_proxy'];
-  final String? httpProxy = null;
+  final String? httpProxy = EH.noProxy ? null : (EH.proxy ?? env['http_proxy']);
   final Uri? httpProxyUri = httpProxy != null ? Uri.parse(httpProxy) : null;
+
+  final hasProxy = httpProxyUri != null;
 
 // export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890
 
   dio = Dio();
+  dio!.interceptors.add(RetryInterceptor(
+      dio: dio!,
+      logPrint: log.warning,
+      retries: 6,
+      retryDelays: const [
+        Duration(seconds: 1),
+        Duration(seconds: 3),
+        Duration(seconds: 5),
+        Duration(seconds: 30),
+        Duration(seconds: 60),
+        Duration(seconds: 5 * 60),
+      ]));
+
   dio!.options.headers = {
     'accept-encoding': 'gzip, deflate, br',
     'Accept-Language': 'en-US,en;q=0.5',
@@ -69,20 +87,60 @@ Dio getDio() {
         return 'PROXY ${httpProxyUri.host}:${httpProxyUri.port}';
       };
     }
-    client.badCertificateCallback =
-        (X509Certificate cert, String host, int port) {
-      return hosts.containsValue(host);
-    };
+    // 代理开启
+    if (hasProxy || EH.domainFronting) {
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        return true;
+      };
+    }
   };
 
   final cookieJar = CookieJar();
-  cookieJar.saveFromResponse(
-      Uri.parse('https://e-hentai.org/'), [Cookie('sl', 'dm_2')]);
-  dio!.interceptors.add(CookieManager(cookieJar));
-  domainFronting.bind(dio!);
-  if (httpProxyUri != null) {
-    print("由于有代理配置所有停止域前置");
-    domainFronting.enable = false;
+
+  final cookieList = <Cookie>[Cookie('sl', 'dm_2')];
+  if (EH.cookie != null) {
+    cookieList.addAll(EH.cookie!
+        .split(';')
+        .map((e) => e.trim().split('='))
+        .where((element) => element.length >= 2)
+        .map((e) => Cookie(e[0].trim(), e[1].trim())));
   }
+  log.debug(cookieList);
+  cookieJar.saveFromResponse(Uri.parse('https://e-hentai.org/'), cookieList);
+  cookieJar.saveFromResponse(Uri.parse('https://exhentai.org/'), cookieList);
+  dio!.interceptors.add(CookieManager(cookieJar));
+  // dio!.interceptors.add(dioLoggerInterceptor);
+  domainFronting.bind(dio!);
+  domainFronting.enable = EH.domainFronting;
   return dio!;
 }
+
+final dioLoggerInterceptor =
+    InterceptorsWrapper(onRequest: (RequestOptions options, handler) {
+  String headers = "";
+  options.headers.forEach((key, value) {
+    headers += "| $key: $value";
+  });
+
+  print(
+      "┌------------------------------------------------------------------------------");
+  print('''| [DIO] Request: ${options.method} ${options.uri}
+| ${options.data.toString()}
+| Headers:\n$headers''');
+  print(
+      "├------------------------------------------------------------------------------");
+  handler.next(options); //continue
+}, onResponse: (Response response, handler) async {
+  print(
+      "| [DIO] Response [code ${response.statusCode}]: ${response.data.toString()}");
+  print(
+      "└------------------------------------------------------------------------------");
+  handler.next(response);
+  // return response; // continue
+}, onError: (DioError error, handler) async {
+  print("| [DIO] Error: ${error.error}: ${error.response?.toString()}");
+  print(
+      "└------------------------------------------------------------------------------");
+  handler.next(error); //continue
+});
