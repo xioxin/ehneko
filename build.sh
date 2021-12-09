@@ -1,3 +1,7 @@
 #!/bin/bash
 
-dart compile exe ./bin/ehneko.dart -o ./dist
+mkdir ./dist
+dart compile exe ./bin/ehneko.dart -o ./dist/ehneko
+cp -r ./rules ./dist/
+
+
