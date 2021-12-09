@@ -11,16 +11,15 @@ import 'package:scraper/scraper.dart';
 import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:collection/collection.dart';
-
+import 'package:path/path.dart' as p;
 import 'eh.dart';
 
 ScraperController? controller;
 
 ScraperController getScraperController() {
   if (controller != null) return controller!;
-  var fileUri = Uri.file(Platform.script.toFilePath())
-      .resolve('../rules/eh.scraper.yaml');
-  final ruleFile = File(fileUri.toFilePath());
+  final filePath = p.join(Directory.current.path, './rules/eh.scraper.yaml');
+  final ruleFile = File(filePath);
   final dio = getDio();
   controller = ScraperController(request: (ScraperController controller,
       Scraper scraper, Uri uri, Map<String, dynamic>? extra) async {
