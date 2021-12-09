@@ -5,7 +5,5 @@
 # Conventional directory for build output.
 build/
 
-output
+test/myserver_test.dart
 
-eh.log
-.DS_Store

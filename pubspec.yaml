@@ -15,7 +15,7 @@ dependencies:
     # path: ../scraper
   dio: ^4.0.0
   dio_domain_fronting: 
-    path: ../dio_domain_fronting
+    path: ./package/dio_domain_fronting
   json_annotation: ^4.1.0
   dio_cookie_manager: ^2.0.0
   cookie_jar: 3.0.1
