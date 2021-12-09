@@ -1,0 +1,27 @@
+name: ehneko
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: build
+        run: bash ./build.sh
+        
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ehneko-macos
+          path: ${{github.workspace}}/dist
