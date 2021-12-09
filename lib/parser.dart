@@ -5,10 +5,12 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
+import 'package:eh/display.dart';
 import 'package:eh/log.dart';
 import 'package:scraper/scraper.dart';
 import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:collection/collection.dart';
 
 import 'eh.dart';
 
@@ -20,9 +22,9 @@ ScraperController getScraperController() {
       .resolve('../rules/eh.scraper.yaml');
   final ruleFile = File(fileUri.toFilePath());
   final dio = getDio();
-  controller = ScraperController(
-      request: (ScraperController controller, Scraper scraper, Uri uri) async {
-    final response = await dio.getUri(uri);
+  controller = ScraperController(request: (ScraperController controller,
+      Scraper scraper, Uri uri, Map<String, dynamic>? extra) async {
+    final response = await dio.getUri(uri, options: Options(extra: extra));
     return response.data;
   });
   controller!.addYamlRules(ruleFile.readAsStringSync());
@@ -38,23 +40,49 @@ Dio getDio() {
   final Uri? httpProxyUri = httpProxy != null ? Uri.parse(httpProxy) : null;
 
   final hasProxy = httpProxyUri != null;
-
-// export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890
+  log.debug("httpProxy: $httpProxy");
+  log.debug("domainFronting: ${EH.domainFronting}");
 
   dio = Dio();
-  dio!.interceptors.add(RetryInterceptor(
-      dio: dio!,
-      logPrint: log.warning,
-      retries: 6,
-      retryDelays: const [
-        Duration(seconds: 1),
-        Duration(seconds: 3),
-        Duration(seconds: 5),
-        Duration(seconds: 30),
-        Duration(seconds: 60),
-        Duration(seconds: 5 * 60),
-      ]));
+  final retryInterceptor = RetryInterceptor(
+    dio: dio!,
+    logPrint: log.warning,
+    retries: 6,
+    retryDelays: const [
+      Duration(seconds: 1),
+      Duration(seconds: 3),
+      Duration(seconds: 5),
+      Duration(seconds: 30),
+      Duration(seconds: 60),
+      Duration(seconds: 5 * 60),
+    ],
+    retryEvaluator: (DioError error, attempt) async {
+      final shouldRetry =
+          RetryInterceptor.defaultRetryEvaluator(error, attempt);
+      try {
+        final gid = error.requestOptions.extra['eh_gid'];
+        final token = error.requestOptions.extra['eh_token'];
+        final roAttempt = error.requestOptions.extra['ro_attempt'];
+        final state = EH.queueStateList.firstWhereOrNull(
+            (element) => element.gid == gid && element.token == token);
+        if (state != null) {
+          state.retry = true;
+          state.retryAttempt = roAttempt ?? 0;
+          state.errorMsg = error.toString();
+          Display.flashState();
+        }
+      } catch (e, stackTrace) {
+        log.error(e.toString(), e, stackTrace);
+      }
+      return shouldRetry;
+    },
+  );
 
+  dio!.interceptors.add(retryInterceptor);
+
+  dio!.options.sendTimeout = 1000 * 30;
+  dio!.options.connectTimeout = 1000 * 30;
+  dio!.options.receiveTimeout = 1000 * 30;
   dio!.options.headers = {
     'accept-encoding': 'gzip, deflate, br',
     'Accept-Language': 'en-US,en;q=0.5',

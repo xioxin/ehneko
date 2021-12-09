@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:loggy/loggy.dart';
 
+import 'display.dart';
+
 class MyPrettyPrinter extends LoggyPrinter {
   late IOSink logFileHandle;
 
@@ -26,8 +28,8 @@ class MyPrettyPrinter extends LoggyPrinter {
 
   static final _levelPrefixes = {
     LogLevel.debug: '🐛 ',
-    LogLevel.info: '👻 ',
-    LogLevel.warning: '🤡 ',
+    LogLevel.info: '😺 ',
+    LogLevel.warning: '😈 ',
     LogLevel.error: '🥵 ',
   };
 
@@ -67,11 +69,11 @@ class MyPrettyPrinter extends LoggyPrinter {
         _colorize ? levelColor(record.level) ?? AnsiColor() : AnsiColor();
     final _prefix = levelPrefix(record.level) ?? _defaultPrefix;
 
-    print(_color(
+    Display.log(_color(
         '$_prefix$_time $_logLevel ${record.loggerName} $_callerFrame ${record.message}'));
 
     if (record.stackTrace != null) {
-      print(record.stackTrace);
+      Display.log(record.stackTrace.toString());
     }
     try {
       saveLogFile(record);

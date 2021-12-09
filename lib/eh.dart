@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:eh/display.dart';
 import 'package:eh/parser.dart';
 import 'package:eh/range.dart';
 import 'package:loggy/loggy.dart';
@@ -39,6 +41,8 @@ class EH {
     return _queue!;
   }
 
+  static List<EhState> queueStateList = [];
+
   static downloadGallery(String url, {String? imageRange}) async {
     imageRange ??= ':';
     log.info("[START] $url");
@@ -68,73 +72,126 @@ class EH {
         return;
       }
     }
-
     final state = EhState(
-        gid: gid,
-        token: token,
-        complete: false,
-        error: false,
-        range: imageRange);
-    await stateFile.writeAsString(JsonEncoder.withIndent('  ').convert(state));
-
+      gid: gid,
+      token: token,
+      complete: false,
+      error: false,
+      range: imageRange,
+      stateFile: stateFile,
+    );
+    await state.save();
+    queueStateList.add(state);
+    Display.flashState();
     try {
       final gallery = GalleryController(gid, token, host: uri.host);
       final data = await gallery.firstData();
       final length = data.length;
       log.info("[$gid/$token] ${data.title}");
       final indexList = getRange(imageRange, length: length);
-      int n = 1;
+      state.title = data.title;
+      state.progressLength = indexList.length;
+      int n = 0;
       for (int index in indexList) {
+        n += 1;
         final item = await gallery.getImageInfo(index);
-        final imageInfo = await item.getImageInfo();
+        final imageInfo =
+            await item.getImageInfo({'eh_gid': gid, 'eh_token': token});
         final fileName =
             '${imageInfo.currentPage.toString().padLeft(3, '0')}-${imageInfo.fileName}';
         log.info(
-            "[$gid/$token/$index] (${n++}/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
-        await getDio()
-            .download(imageInfo.image, p.join(galleryDir.path, fileName));
+            "[$gid/$token/$index] ($n/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
+        await getDio().download(
+            imageInfo.image, p.join(galleryDir.path, fileName),
+            onReceiveProgress: (int count, int total) {
+          state.imageDownloadTotal = total;
+          state.imageDownloadCount = count;
+          Display.flashState();
+        },
+            options: Options(
+                extra: {'eh_gid': gid, 'eh_token': token, 'eh_index': index}));
+        state.retry = false;
+        state.progressCurrent = n;
+        state.imageDownloadTotal = 0;
+        state.imageDownloadCount = 0;
+        Display.flashState();
       }
       log.info("[$gid/$token] Save Meta Data");
       metaFile.writeAsStringSync(JsonEncoder.withIndent('  ', myEncode)
           .convert(await gallery.getMixData()));
-
-      final state = EhState(
-          gid: gid,
-          token: token,
-          complete: true,
-          error: false,
-          range: imageRange);
-      await stateFile
-          .writeAsString(JsonEncoder.withIndent('  ').convert(state));
+      state.complete = true;
+      EhState.countComplete++;
+      await state.save();
+      Display.flashState();
     } catch (e, stacktrace) {
       log.error("[$gid/$token] $e", e, stacktrace);
-      final state = EhState(
-          gid: gid,
-          token: token,
-          complete: false,
-          error: true,
-          errorMsg: e.toString(),
-          range: imageRange,
-          stackTrace: stacktrace.toString());
-      await stateFile
-          .writeAsString(JsonEncoder.withIndent('  ').convert(state));
+      state.error = true;
+      EhState.countError++;
+      state.errorMsg = e.toString();
+      state.stackTrace = stacktrace.toString();
+      await state.save();
     }
   }
 
   static downloadList(String url, {String? range}) async {
     final uri = Uri.parse(url);
+    if (range == null) {
+      EhState.nowListUrl = uri.toString();
+      EhState.listPageTotal = 1;
+      EhState.listPageCount = 0;
+      Display.flashState();
+      await downloadListPage(uri);
+      EhState.listPageCount = 1;
+      Display.flashState();
+    } else {
+      final List<int> indexList = getRange(range);
+      EhState.listPageTotal = indexList.length;
+      int n = 0;
+      for (int index in indexList) {
+        n = n + 1;
+        final uri2 = uri.replace(queryParameters: {
+          ...uri.queryParameters,
+          'page': index.toString()
+        });
+        EhState.nowListPage = index;
+        EhState.nowListUrl = uri2.toString();
+        Display.flashState();
+        await downloadListPage(uri2);
+        EhState.listPageCount = n;
+        Display.flashState();
 
+        // 清理任务状态 减少内存占用
+        EH.queueStateList = EH.queueStateList
+            .where((element) => element.complete == false)
+            .toList();
+      }
+    }
+  }
+
+  static downloadListPage(Uri uri) async {
+    log.info("[${uri.toString()}] Load list");
     final controller = getScraperController();
     final parser = await controller.loadUri(uri);
     final galleryList = GalleryList.fromJson(parser.parse()!);
+    int n = 0;
+    EhState.subListPageTotal = galleryList.items.length;
+    EhState.subListPageCount = 0;
+    Display.flashState();
     if (galleryList.items.isEmpty) {
-      log.info("[$url] GalleryListIsEmpty");
+      log.error("[${uri.toString()}] Gallery list is empty");
     }
     for (var item in galleryList.items) {
       queue.add(() async {
         await downloadGallery(item.href, imageRange: EH.imageRange);
+        n++;
+        EhState.subListPageCount = n;
+        Display.flashState();
       });
     }
+    await queue.onComplete;
+    EhState.subListPageTotal = 0;
+    EhState.subListPageCount = 0;
+    Display.flashState();
   }
 }
 
@@ -163,7 +220,8 @@ class GalleryController {
     if (pageIndex > 0) {
       uri = uri.replace(query: 'p=$pageIndex');
     }
-    rawPageDataFuture[pageIndex] = controller.loadUri(uri).then((parser) {
+    rawPageDataFuture[pageIndex] = controller
+        .loadUri(uri, {"eh_gid": gid, "eh_token": token}).then((parser) {
       final data = parser.parse();
       if (pageIndex == 0) firstRawData = data;
       return Gallery.fromJson(data!);
@@ -198,10 +256,10 @@ class GalleryController {
 }
 
 extension GalleryItemEx on GalleryItem {
-  Future<GalleryImage> getImageInfo() async {
+  Future<GalleryImage> getImageInfo(Map<String, dynamic>? extra) async {
     final controller = getScraperController();
     return controller
-        .loadUri(Uri.parse(href))
+        .loadUri(Uri.parse(href), extra)
         .then((parser) => GalleryImage.fromJson(parser.parse()!));
   }
 }

@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
+import 'package:eh/display.dart';
 import 'package:eh/eh.dart';
 import 'package:eh/log.dart';
 import 'package:eh/parser.dart';
@@ -18,6 +20,7 @@ import 'package:loggy/loggy.dart';
 
 void main(List<String> arguments) async {
   Loggy.initLoggy(logPrinter: MyPrettyPrinter());
+  Display.init();
   log.info('Application Launching. arguments: $arguments');
   final runner = CommandRunner("eh", "用于下载EHentai漫画的工具")
     ..addCommand(BatchCommand())
@@ -44,8 +47,7 @@ class BatchCommand extends Command {
 
   BatchCommand() {
     argParser.addOption('link', abbr: 'l', help: '提供一个搜索页面地址', mandatory: true);
-    argParser.addOption('pages',
-        abbr: 'p', help: '页码范围(!!WIP!!)', valueHelp: '0:9');
+    argParser.addOption('pages', abbr: 'p', help: '页码范围', valueHelp: '0:9');
     argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
     // argParser.addOption('delay',
     //     abbr: 'd', help: '多任务速度不超过这个(ms)', valueHelp: '1000');
@@ -60,14 +62,14 @@ class BatchCommand extends Command {
   @override
   void run() {
     EH.parallel = int.tryParse(argResults!['parallel'] ?? '');
-    // EH.delay = int.tryParse(argResults!['delay'] ?? '');
     EH.noProxy = argResults!['no-proxy'];
     EH.proxy = argResults!['proxy'];
     EH.domainFronting = argResults!['domain-fronting'];
     EH.cookie = argResults!['cookie'];
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
-    EH.downloadList(argResults!['link']);
+    Display.height = max((EH.parallel ?? 1), 10);
+    EH.downloadList(argResults!['link'], range: argResults!['pages']);
   }
 }
 
@@ -93,6 +95,7 @@ class GalleryCommand extends Command {
     EH.cookie = argResults!['cookie'];
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
+    Display.height = 1;
     EH.downloadGallery(argResults!['link'], imageRange: EH.imageRange);
   }
 }
