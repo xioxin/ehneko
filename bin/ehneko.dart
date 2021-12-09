@@ -22,7 +22,7 @@ void main(List<String> arguments) async {
   Loggy.initLoggy(logPrinter: MyPrettyPrinter());
   Display.init();
   log.info('Application Launching. arguments: $arguments');
-  final runner = CommandRunner("eh", "用于下载EHentai漫画的工具")
+  final runner = CommandRunner("ehneko", "用于下载EHentai漫画的工具")
     ..addCommand(BatchCommand())
     ..addCommand(GalleryCommand())
     ..addCommand(FixCommand())
