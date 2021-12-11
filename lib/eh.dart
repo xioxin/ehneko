@@ -10,6 +10,7 @@ import 'package:loggy/loggy.dart';
 import 'package:path/path.dart' as p;
 import 'package:queue/queue.dart';
 
+import 'http.dart';
 import 'log.dart';
 import 'model/gallery.dart';
 import 'model/state.dart';
@@ -31,6 +32,12 @@ class EH {
 
   static bool force = false;
 
+  static bool lofiImage = false;
+
+  static bool bannedShutdown = false;
+
+  static String? bannedCommand;
+
   static loadConfig() {}
 
   static Queue? _queue;
@@ -46,7 +53,7 @@ class EH {
   static downloadGallery(String url, {String? imageRange}) async {
     imageRange ??= ':';
     log.info("[START] $url");
-    final uri = Uri.parse(url);
+    Uri uri = Uri.parse(url);
     if (uri.pathSegments.length < 3) throw "Unrecognized link address";
     if (uri.pathSegments.first != 'g') throw "Unrecognized link address";
     final gid = int.tryParse(uri.pathSegments[1]);
@@ -97,8 +104,12 @@ class EH {
         final item = await gallery.getImageInfo(index);
         final imageInfo =
             await item.getImageInfo({'eh_gid': gid, 'eh_token': token});
+
+        String? rawFileName = imageInfo.fileName;
+        rawFileName ??= '.unknown';
+
         final fileName =
-            '${imageInfo.currentPage.toString().padLeft(3, '0')}-${imageInfo.fileName}';
+            '${imageInfo.currentPage.toString().padLeft(3, '0')}-$rawFileName';
         log.info(
             "[$gid/$token/$index] ($n/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
         await getDio().download(
@@ -262,8 +273,12 @@ class GalleryController {
 extension GalleryItemEx on GalleryItem {
   Future<GalleryImage> getImageInfo(Map<String, dynamic>? extra) async {
     final controller = getScraperController();
+    Uri uri = Uri.parse(href);
+    if(EH.lofiImage && uri.pathSegments.first == 's') {
+        uri = uri.replace(pathSegments: ['lofi', ...uri.pathSegments]);
+    }
     return controller
-        .loadUri(Uri.parse(href), extra)
+        .loadUri(uri, extra)
         .then((parser) => GalleryImage.fromJson(parser.parse()!));
   }
 }
@@ -274,3 +289,9 @@ dynamic myEncode(dynamic item) {
   }
   return item;
 }
+
+
+
+
+
+

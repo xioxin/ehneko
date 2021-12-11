@@ -138,7 +138,7 @@ GalleryImage _$GalleryImageFromJson(Map<String, dynamic> json) => GalleryImage(
       json['currentPage'] as int?,
       json['totalPage'] as int?,
       json['image'] as String,
-      json['fileName'] as String,
+      json['fileName'] as String?,
     );
 
 Map<String, dynamic> _$GalleryImageToJson(GalleryImage instance) =>

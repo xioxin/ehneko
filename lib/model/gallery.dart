@@ -239,7 +239,7 @@ class GalleryImage extends Object {
   String image;
 
   @JsonKey(name: 'fileName')
-  String fileName;
+  String? fileName;
 
   GalleryImage(
     this.title,

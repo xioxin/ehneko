@@ -10,7 +10,10 @@ class MyPrettyPrinter extends LoggyPrinter {
   MyPrettyPrinter({
     this.showColors,
   }) : super() {
-    final logFile = File(p.join(Directory.current.path, 'eh.log'));
+    final logDir = Directory(p.join(Directory.current.path, 'logs'));
+    if(!logDir.existsSync()) logDir.createSync(recursive: true);
+    final time = DateTime.now().toIso8601String().replaceAll(RegExp(r"[\s_:]"), '-');
+    final logFile = File(p.join(logDir.path, 'eh-$time.log'));
     logFileHandle = logFile.openWrite(mode: FileMode.append);
   }
 
@@ -36,7 +39,7 @@ class MyPrettyPrinter extends LoggyPrinter {
   static const _defaultPrefix = '🤔 ';
 
   void saveLogFile(LogRecord record) {
-    final _time = record.time.toIso8601String().split('T')[1];
+    final _time = record.time.toIso8601String().split('T')[1].padRight(15, '0');
     final _callerFrame =
         record.callerFrame == null ? '-' : '(${record.callerFrame?.location})';
     final _logLevel = record.level
@@ -56,7 +59,7 @@ class MyPrettyPrinter extends LoggyPrinter {
 
   @override
   void onLog(LogRecord record) {
-    final _time = record.time.toIso8601String().split('T')[1];
+    final _time = record.time.toIso8601String().split('T')[1].padRight(15, '0');
     final _callerFrame =
         record.callerFrame == null ? '-' : '(${record.callerFrame?.location})';
     final _logLevel = record.level

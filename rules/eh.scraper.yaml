@@ -299,3 +299,24 @@ rules:
       - id: image
         selector: "#img"
         attribute: src
+
+  - matches:
+      - '^/lofi/s/(\w+)/(\d+)-(\d+)(\?.*)?$'
+    type: html
+    selectors:
+      - id: title
+        selector: "h1"
+      - id: currentPage
+        selector: "#ia"
+        regex: '(\d+) / (\d+)'
+        expression: $1.toInt()
+      - id: totalPage
+        selector: "#ia"
+        regex: '(\d+) / (\d+)'
+        expression: $2.toInt()
+      - id: fileName
+        selector: "#sm"
+        attribute: title
+      - id: image
+        selector: "#sm"
+        attribute: src

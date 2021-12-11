@@ -23,6 +23,10 @@ class EhState extends Object {
   static int countComplete = 0;
   static int countError = 0;
 
+  static bool cooling = false;
+  static DateTime? coolDownTime;
+
+
   int gid;
   String token;
   bool complete;

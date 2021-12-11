@@ -39,5 +39,5 @@ List<int> getRange(String rangeText, {int? length}) {
       }
     }
   }
-  return list.toList()..sort();
+  return list.where((v) => v>= 0 && (length == null || v < length)).toList()..sort();
 }
