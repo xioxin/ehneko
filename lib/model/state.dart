@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:eh/model/gallery.dart';
 import 'package:json_annotation/json_annotation.dart';
 part 'state.g.dart';
 
@@ -16,6 +17,8 @@ class EhState extends Object {
 
   static int subListPageCount = 0;
   static int subListPageTotal = 0;
+
+  static GalleryList? listData;
 
   static int countComplete = 0;
   static int countError = 0;

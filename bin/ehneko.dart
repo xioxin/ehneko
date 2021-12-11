@@ -19,19 +19,17 @@ import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:loggy/loggy.dart';
 
 void main(List<String> arguments) async {
-  Loggy.initLoggy(logPrinter: MyPrettyPrinter());
-  Display.init();
-  log.info('Application Launching. arguments: $arguments');
   final runner = CommandRunner("ehneko", "用于下载EHentai漫画的工具")
     ..addCommand(BatchCommand())
     ..addCommand(GalleryCommand())
     ..addCommand(FixCommand())
+    ..addCommand(JsonCommand())
     ..run(arguments);
 }
 
 addCommonCommand(ArgParser argParser) {
-  argParser.addOption('output',
-      abbr: 'o', help: '输出目录<!!WIP!!>', valueHelp: "./output");
+  // argParser.addOption('output',
+  //     abbr: 'o', help: '输出目录<!!WIP!!>', valueHelp: "./output");
   argParser.addOption('cookie', abbr: 'c', help: 'Cookie凭证');
   argParser.addFlag('domain-fronting',
       abbr: 'd', negatable: false, help: '开启域名前置');
@@ -47,20 +45,20 @@ class BatchCommand extends Command {
 
   BatchCommand() {
     argParser.addOption('link', abbr: 'l', help: '提供一个搜索页面地址', mandatory: true);
-    argParser.addOption('pages', abbr: 'p', help: '页码范围', valueHelp: '0:9');
+    argParser.addOption('pages', abbr: 'p', help: '页码范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>', valueHelp: '0:9');
     argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
-    // argParser.addOption('delay',
-    //     abbr: 'd', help: '多任务速度不超过这个(ms)', valueHelp: '1000');
     argParser.addOption('range',
         abbr: 'r',
         help:
-            '图片下载范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
+            '图片下载范围 (规则与--pages相同)',
         valueHelp: '0:4,-4:');
     addCommonCommand(argParser);
   }
 
   @override
   void run() {
+    Loggy.initLoggy(logPrinter: MyPrettyPrinter());
+    Display.init();
     EH.parallel = int.tryParse(argResults!['parallel'] ?? '');
     EH.noProxy = argResults!['no-proxy'];
     EH.proxy = argResults!['proxy'];
@@ -68,7 +66,6 @@ class BatchCommand extends Command {
     EH.cookie = argResults!['cookie'];
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
-    Display.height = max((EH.parallel ?? 1), 10);
     EH.downloadList(argResults!['link'], range: argResults!['pages']);
   }
 }
@@ -89,13 +86,14 @@ class GalleryCommand extends Command {
 
   @override
   void run() {
+    Loggy.initLoggy(logPrinter: MyPrettyPrinter());
+    Display.init();
     EH.noProxy = argResults!['no-proxy'];
     EH.proxy = argResults!['proxy'];
     EH.domainFronting = argResults!['domain-fronting'];
     EH.cookie = argResults!['cookie'];
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
-    Display.height = 1;
     EH.downloadGallery(argResults!['link'], imageRange: EH.imageRange);
   }
 }
@@ -111,5 +109,32 @@ class FixCommand extends Command {
   @override
   void run() {
     // todo!
+  }
+}
+
+class JsonCommand extends Command {
+  final name = "json";
+  final description = "解析数据并以json输出";
+
+  JsonCommand() {
+    argParser.addOption('link', abbr: 'l', help: '提供一个地址', mandatory: true);
+    addCommonCommand(argParser);
+  }
+
+  @override
+  void run() async {
+    try {
+      EH.noProxy = argResults!['no-proxy'];
+      EH.proxy = argResults!['proxy'];
+      EH.domainFronting = argResults!['domain-fronting'];
+      EH.cookie = argResults!['cookie'];
+      final uri = Uri.parse(argResults!['link']);
+      print(uri);
+      final controller = getScraperController();
+      final parser = await controller.loadUri(uri);
+      print(JsonEncoder.withIndent('  ', myEncode).convert(parser.parse()));
+    } catch (e) {
+      print(JsonEncoder().convert({"error": e.toString()}));
+    }
   }
 }

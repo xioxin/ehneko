@@ -36,27 +36,18 @@ sites:
 
 rules:
   - matches:
-      - '^\/(\?.*)?$'
-      - '^\/uploader/\w+(\?.*)?$'
-      - '^\/(non-h|western|imageset|misc|artistcg|gamecg|cosplay|manga|doujinshi|asianporn|watched|popular|favorites\.php)(/\d+)?(\?.*)?$'
+      - '^/(\?.*)?$'
+      - '^/uploader/\w+(\?.*)?$'
+      - '^/(non-h|western|imageset|misc|artistcg|gamecg|cosplay|manga|doujinshi|asianporn|watched|popular|favorites\.php)(/\d+)?(\?.*)?$'
     type: html
     selectors:
       - id: count
         selector: p.ip
-        regex: ([\d,]+)
+        regex: (\D)
         expression: $1.toInt()
       - id: currentPage
         selector: td.ptds a
         expression: value.toInt()
-      - id: endPage
-        selector: .ptt td
-        multiple: true
-        children: 
-          - id: page
-            selector: a
-            expression: value.toInt()
-            required: true
-        expression: value.last.page
       - id: displayMode
         type: element
         selector: "#dms option[selected]"
@@ -89,7 +80,7 @@ rules:
             attribute: src
             selector: .gldown img
             regex: (\/t\.png)
-            expression: $1.toBool()
+            expression: value.toBool()
 
           - id: tags
             multiple: true
@@ -118,12 +109,12 @@ rules:
           - id: date
             selector: "[id^='posted_'] , .gl3e .cn + div, .gl5t .cs + div, .gl2m .glthumb + div"
   - matches:
-      - '^/g/(\d+)/(\w+)/(\?.*)?$'
+      - '^/g/(\d+)/(\w+)/$'
     type: html
     selectors:
       - id: title
         selector: "#gn"
-      - id: subtitle
+      - id: sub_title
         selector: "#gj"
       - id: category
         selector: "#gdc"
@@ -190,20 +181,6 @@ rules:
         selector: "#gdo2 > div.ths.nosel"
       - id: currentPage
         selector: ".ptds"
-      - id: pageList
-        selector: ".ptt td"
-        multiple: true
-        children:
-          - id: number
-            regex: '(\d+)'
-            expression: $1.toInt()
-            required: true
-          - id: href
-            selector: "a"
-            attribute: href
-          - id: current
-            attribute: class
-            expression: value == "ptds"
       - id: eventpane
         type: html
         selector: "#eventpane"
@@ -266,36 +243,3 @@ rules:
           - id: content
             type: html
             selector: ".c6"
-  - matches:
-      - '^/s/(\w+)/(\d+)-(\d+)(\?.*)?$'
-    type: html
-    selectors:
-      - id: title
-        selector: "h1"
-      - id: currentPage
-        selector: "#i2 > div.sn > div"
-        regex: '(\d+) / (\d+)'
-        expression: $1.toInt()
-      - id: totalPage
-        selector: "#i2 > div.sn > div"
-        regex: '(\d+) / (\d+)'
-        expression: $2.toInt()
-      - id: fileName
-        selector: "#i2 > div:nth-child(2)"
-        regex: '(.+) :: (.+) x (.+) :: (.+)'
-        expression: $1
-      - id: pixelX
-        selector: "#i2 > div:nth-child(2)"
-        regex: '(.+) :: (.+) x (.+) :: (.+)'
-        expression: $2.toInt()
-      - id: pixelY
-        selector: "#i2 > div:nth-child(2)"
-        regex: '(.+) :: (.+) x (.+) :: (.+)'
-        expression: $3.toInt()
-      - id: fileSize
-        selector: "#i2 > div:nth-child(2)"
-        regex: '(.+) :: (.+) x (.+) :: (.+)'
-        expression: $4
-      - id: image
-        selector: "#img"
-        attribute: src

@@ -11,25 +11,25 @@ class Gallery extends Object {
   String title;
 
   @JsonKey(name: 'subtitle')
-  String subtitle;
+  String? subtitle;
 
   @JsonKey(name: 'category')
-  String category;
+  String? category;
 
   @JsonKey(name: 'cover')
-  String cover;
+  String? cover;
 
   @JsonKey(name: 'uploader')
-  Uploader uploader;
+  Uploader? uploader;
 
   @JsonKey(name: 'visible')
-  String visible;
+  String? visible;
 
   @JsonKey(name: 'language')
-  String language;
+  String? language;
 
   @JsonKey(name: 'fileSize')
-  String fileSize;
+  String? fileSize;
 
   @JsonKey(name: 'length')
   int length;
@@ -44,10 +44,10 @@ class Gallery extends Object {
   List<Tags> tags;
 
   @JsonKey(name: 'coverSizeMode')
-  String coverSizeMode;
+  String? coverSizeMode;
 
   @JsonKey(name: 'coverRowsMode')
-  String coverRowsMode;
+  String? coverRowsMode;
 
   @JsonKey(name: 'currentPage')
   String currentPage;
@@ -96,10 +96,7 @@ class Uploader extends Object {
   @JsonKey(name: 'href')
   String href;
 
-  Uploader(
-    this.name,
-    this.href,
-  );
+  Uploader(this.name, this.href );
 
   factory Uploader.fromJson(Map<String, dynamic> srcJson) =>
       _$UploaderFromJson(srcJson);
@@ -184,16 +181,16 @@ unchanged(Object v) => v;
 @JsonSerializable()
 class Comment extends Object {
   @JsonKey(name: 'date', fromJson: unchanged)
-  DateTime date;
+  DateTime? date;
 
   @JsonKey(name: 'user')
-  User user;
+  User? user;
 
   @JsonKey(name: 'isUploader')
-  bool isUploader;
+  bool? isUploader;
 
   @JsonKey(name: 'content')
-  String content;
+  String? content;
 
   Comment(
     this.date,
@@ -230,13 +227,13 @@ class User extends Object {
 @JsonSerializable()
 class GalleryImage extends Object {
   @JsonKey(name: 'title')
-  String title;
+  String? title;
 
   @JsonKey(name: 'currentPage')
-  int currentPage;
+  int? currentPage;
 
   @JsonKey(name: 'totalPage')
-  int totalPage;
+  int? totalPage;
 
   @JsonKey(name: 'image')
   String image;
@@ -263,6 +260,13 @@ class GalleryImage extends Object {
 
 @JsonSerializable()
 class GalleryList extends Object {
+
+  @JsonKey(name: 'count')
+  int count;
+
+  @JsonKey(name: 'endPage')
+  int endPage;
+
   @JsonKey(name: 'currentPage')
   int? currentPage;
 
@@ -273,6 +277,8 @@ class GalleryList extends Object {
   List<GalleryListItem> items;
 
   GalleryList(
+    this.endPage,
+    this.count,
     this.currentPage,
     this.displayMode,
     this.items,
@@ -309,7 +315,7 @@ class GalleryListItem extends Object {
   String toString() => "\n$href : $title";
 
   @JsonKey(name: 'category')
-  String category;
+  String? category;
 
   @JsonKey(name: 'title')
   String title;
@@ -318,19 +324,19 @@ class GalleryListItem extends Object {
   String href;
 
   @JsonKey(name: 'cover')
-  String cover;
+  String? cover;
 
   @JsonKey(name: 'tags')
   List<String> tags;
 
   @JsonKey(name: 'uploader')
-  Uploader uploader;
+  Uploader? uploader;
 
   @JsonKey(name: 'pages')
-  int pages;
+  int? pages;
 
   @JsonKey(name: 'date')
-  String date;
+  String? date;
 
   GalleryListItem(
     this.category,

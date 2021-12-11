@@ -8,21 +8,23 @@ part of 'gallery.dart';
 
 Gallery _$GalleryFromJson(Map<String, dynamic> json) => Gallery(
       json['title'] as String,
-      json['subtitle'] as String,
-      json['category'] as String,
-      json['cover'] as String,
-      Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
-      json['visible'] as String,
-      json['language'] as String,
-      json['fileSize'] as String,
+      json['subtitle'] as String?,
+      json['category'] as String?,
+      json['cover'] as String?,
+      json['uploader'] == null
+          ? null
+          : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
+      json['visible'] as String?,
+      json['language'] as String?,
+      json['fileSize'] as String?,
       json['length'] as int,
       json['favcount'] as int,
       (json['rating'] as num).toDouble(),
       (json['tags'] as List<dynamic>)
           .map((e) => Tags.fromJson(e as Map<String, dynamic>))
           .toList(),
-      json['coverSizeMode'] as String,
-      json['coverRowsMode'] as String,
+      json['coverSizeMode'] as String?,
+      json['coverRowsMode'] as String?,
       json['currentPage'] as String,
       (json['pageList'] as List<dynamic>)
           .map((e) => GallerySubPages.fromJson(e as Map<String, dynamic>))
@@ -107,13 +109,15 @@ Map<String, dynamic> _$GalleryItemToJson(GalleryItem instance) =>
 
 Comment _$CommentFromJson(Map<String, dynamic> json) => Comment(
       unchanged(json['date'] as Object),
-      User.fromJson(json['user'] as Map<String, dynamic>),
-      json['isUploader'] as bool,
-      json['content'] as String,
+      json['user'] == null
+          ? null
+          : User.fromJson(json['user'] as Map<String, dynamic>),
+      json['isUploader'] as bool?,
+      json['content'] as String?,
     );
 
 Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
-      'date': instance.date.toIso8601String(),
+      'date': instance.date?.toIso8601String(),
       'user': instance.user,
       'isUploader': instance.isUploader,
       'content': instance.content,
@@ -130,9 +134,9 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
     };
 
 GalleryImage _$GalleryImageFromJson(Map<String, dynamic> json) => GalleryImage(
-      json['title'] as String,
-      json['currentPage'] as int,
-      json['totalPage'] as int,
+      json['title'] as String?,
+      json['currentPage'] as int?,
+      json['totalPage'] as int?,
       json['image'] as String,
       json['fileName'] as String,
     );
@@ -147,6 +151,8 @@ Map<String, dynamic> _$GalleryImageToJson(GalleryImage instance) =>
     };
 
 GalleryList _$GalleryListFromJson(Map<String, dynamic> json) => GalleryList(
+      json['endPage'] as int,
+      json['count'] as int,
       json['currentPage'] as int?,
       json['displayMode'] == null
           ? null
@@ -158,6 +164,8 @@ GalleryList _$GalleryListFromJson(Map<String, dynamic> json) => GalleryList(
 
 Map<String, dynamic> _$GalleryListToJson(GalleryList instance) =>
     <String, dynamic>{
+      'count': instance.count,
+      'endPage': instance.endPage,
       'currentPage': instance.currentPage,
       'displayMode': instance.displayMode,
       'items': instance.items,
@@ -176,14 +184,16 @@ Map<String, dynamic> _$DisplayModeToJson(DisplayMode instance) =>
 
 GalleryListItem _$GalleryListItemFromJson(Map<String, dynamic> json) =>
     GalleryListItem(
-      json['category'] as String,
+      json['category'] as String?,
       json['title'] as String,
       json['href'] as String,
-      json['cover'] as String,
+      json['cover'] as String?,
       (json['tags'] as List<dynamic>).map((e) => e as String).toList(),
-      Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
-      json['pages'] as int,
-      json['date'] as String,
+      json['uploader'] == null
+          ? null
+          : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
+      json['pages'] as int?,
+      json['date'] as String?,
     );
 
 Map<String, dynamic> _$GalleryListItemToJson(GalleryListItem instance) =>

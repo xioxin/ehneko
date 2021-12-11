@@ -25,7 +25,8 @@ class Display {
 
   static insertLine() => stdout.write("$x1b[\xff\x4c");
 
-  static int height = 10;
+  static int get displayTaskCount => max(5, EH.parallel ?? 1);
+  static int get height => displayTaskCount * 2 +1;
   static int barLeftWidth = 20;
   static int barWidth = 40;
 
@@ -66,7 +67,7 @@ class Display {
       subArrowNumber = (barWidth * subPrecent * imagePrecent).round();
     }
     final bar = '#'.repeat(arrowNumber) +
-        '='.repeat(subArrowNumber) +
+        '\x1b[90m' + ('='.repeat(subArrowNumber)) + '\x1b[0m' +
         ' '.repeat(barWidth - arrowNumber - subArrowNumber);
     leftText = leftText.padLeft(barLeftWidth);
     String color = '\x1b[0m';
@@ -84,10 +85,9 @@ class Display {
     }
 
     rightText = rightText.textOverflowEllipsis(50);
-
     final pText =
         "${((precent + imagePrecent * subPrecent) * 100).floor().toString().padLeft(3)}%";
-    return "$color$leftText [$bar] $pText\x1b[0m $rightText";
+    return "$color$leftText [$bar] $pText\x1b[0m\n    \x1b[90m$rightText\x1b[0m";
   }
 
   static List<String> stateStringList() {
@@ -101,19 +101,22 @@ class Display {
     queueStateList = [
       ...runState.reversed,
       ...notRunState.reversed,
-    ].take(height).toList().reversed.toList();
+    ].take(displayTaskCount).toList().reversed.toList();
     return queueStateList.map((e) => bar(e)).toList();
   }
 
   static String batchStateString() {
     if (EhState.nowListUrl == null) return "";
-    return "🐱 [${EhState.listPageCount}/${EhState.listPageTotal}] (${EhState.subListPageCount}/${EhState.subListPageTotal})"
-        " ${EhState.nowListUrl} "
+    final count = EhState.listData?.count;
+    final ep = EhState.listData?.endPage;
+    final countText = count != null ? " <TOT:$count,PT:$ep>" : '';
+    return "🐱 [${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}] (${EhState.subListPageCount}/${EhState.subListPageTotal})"
+        "$countText ${EhState.nowListUrl} "
         " \x1b[32mComplete:${EhState.countComplete}\x1b[0m  \x1b[31mError:${EhState.countError}\x1b[0m";
   }
 
   static log([String? text]) {
-    up(height + 1);
+    up(height);
     left(1000);
     clearToEnd();
     if (text != null) print(text);
@@ -122,7 +125,7 @@ class Display {
     for (var text in stateList) {
       print(text);
     }
-    List.generate((height) - stateList.length, (index) => {print("")});
+    List.generate((height - 1) - stateList.length * 2, (index) => {print("")});
   }
 
   static BehaviorSubject flashStateSubject = BehaviorSubject();

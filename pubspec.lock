@@ -473,11 +473,9 @@ packages:
   scraper:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: b9203985b1faa856ecf7cc2d947cf60003c3eadb
-      url: "https://github.com/xioxin/scraper.git"
-    source: git
+      path: "package/scraper"
+      relative: true
+    source: path
     version: "1.0.0"
   shelf:
     dependency: transitive

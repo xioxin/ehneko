@@ -1,6 +1,6 @@
 name: eh
 description: 嗯了
-version: 1.0.0
+version: 1.0.1
 # homepage: https://www.example.com
 publish_to: none
 
@@ -11,8 +11,7 @@ dependencies:
   path: ^1.8.0
   queue: ^3.1.0+1
   scraper: 
-    git: https://github.com/xioxin/scraper.git
-    # path: ../scraper
+    path: ./package/scraper
   dio: ^4.0.0
   dio_domain_fronting: 
     path: ./package/dio_domain_fronting

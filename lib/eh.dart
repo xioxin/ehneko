@@ -144,7 +144,10 @@ class EH {
       EhState.listPageCount = 1;
       Display.flashState();
     } else {
-      final List<int> indexList = getRange(range);
+      final controller = getScraperController();
+      final parser = await controller.loadUri(uri);
+      final galleryList = GalleryList.fromJson(parser.parse()!);
+      final List<int> indexList = getRange(range, length: galleryList.endPage);
       EhState.listPageTotal = indexList.length;
       int n = 0;
       for (int index in indexList) {
@@ -173,6 +176,7 @@ class EH {
     final controller = getScraperController();
     final parser = await controller.loadUri(uri);
     final galleryList = GalleryList.fromJson(parser.parse()!);
+    EhState.listData = galleryList;
     int n = 0;
     EhState.subListPageTotal = galleryList.items.length;
     EhState.subListPageCount = 0;
