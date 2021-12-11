@@ -26,7 +26,7 @@ class Display {
   static insertLine() => stdout.write("$x1b[\xff\x4c");
 
   static int get displayTaskCount => max(5, EH.parallel ?? 1);
-  static int get height => displayTaskCount * 2 +1;
+  static int get height => displayTaskCount * 2 + 1;
   static int barLeftWidth = 20;
   static int barWidth = 40;
 
@@ -44,8 +44,9 @@ class Display {
     G.log.info(" | (￣ヽ＿_ヽ_)__)");
     G.log.info(" ＼二つ");
     G.log.info(" ");
-    flashStateSubject.sampleTime(Duration(milliseconds: 100)).listen((value) {
-      log();
+    flashStateSubject.bufferTime(Duration(milliseconds: 200)).listen((logs) {
+      final logText = logs.where((e) => e != null).join('\n');
+      _log(logText == "" ? null : logText);
     });
   }
 
@@ -67,7 +68,9 @@ class Display {
       subArrowNumber = (barWidth * subPrecent * imagePrecent).round();
     }
     final bar = '#'.repeat(arrowNumber) +
-        '\x1b[90m' + ('='.repeat(subArrowNumber)) + '\x1b[0m' +
+        '\x1b[90m' +
+        ('='.repeat(subArrowNumber)) +
+        '\x1b[0m' +
         ' '.repeat(barWidth - arrowNumber - subArrowNumber);
     leftText = leftText.padLeft(barLeftWidth);
     String color = '\x1b[0m';
@@ -106,16 +109,32 @@ class Display {
   }
 
   static String batchStateString() {
-    if (EhState.nowListUrl == null) return "";
+    // if (EhState.nowListUrl == null) return "";
     final count = EhState.listData?.count;
     final ep = EhState.listData?.endPage;
     final countText = count != null ? " <TOT:$count,PT:$ep>" : '';
-    return "🐱 [${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}] (${EhState.subListPageCount}/${EhState.subListPageTotal})"
-        "$countText ${EhState.nowListUrl} "
+    final pageInfo =
+        "[${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}]";
+    final subCount =
+        "(${EhState.subListPageCount}/${EhState.subListPageTotal})";
+
+    if (EhState.cooling) {
+      String nextTime = '';
+      if (EhState.coolDownTime != null) {
+        nextTime = ' RestartAt:' + EhState.coolDownTime!.toString();
+      }
+      return "🧊🧊🧊 \x1b[41m [COOLING]$nextTime \x1b[0m 🧊🧊🧊 $pageInfo $subCount \x1b[32mComplete:${EhState.countComplete}\x1b[0m  \x1b[31mError:${EhState.countError}\x1b[0m";
+    }
+    return "🐱 $pageInfo $subCount"
+        "$countText ${EhState.nowListUrl ?? ''} "
         " \x1b[32mComplete:${EhState.countComplete}\x1b[0m  \x1b[31mError:${EhState.countError}\x1b[0m";
   }
 
-  static log([String? text]) {
+  static log(String? text) {
+    flashStateSubject.add(text);
+  }
+
+  static _log([String? text]) {
     up(height);
     left(1000);
     clearToEnd();
@@ -128,7 +147,7 @@ class Display {
     List.generate((height - 1) - stateList.length * 2, (index) => {print("")});
   }
 
-  static BehaviorSubject flashStateSubject = BehaviorSubject();
+  static BehaviorSubject<String?> flashStateSubject = BehaviorSubject();
   static flashState() {
     flashStateSubject.add(null);
   }

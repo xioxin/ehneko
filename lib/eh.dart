@@ -64,7 +64,9 @@ class EH {
       galleryDir.createSync(recursive: true);
     } else {
       if (EH.force) {
-        log.info("[$gid/$token] File already exists. Fix file !!!");
+        log.info("[$gid/$token] File already exists. Del file !!!");
+        galleryDir.deleteSync(recursive: true);
+        galleryDir.createSync(recursive: true);
       }
     }
     final stateFile = File(p.join(galleryDir.path, 'state.json'));
@@ -88,6 +90,9 @@ class EH {
     await state.save();
     queueStateList.add(state);
     Display.flashState();
+    final hasFiles =
+        galleryDir.listSync().map((e) => p.basename(e.path)).toList();
+    log.debug(hasFiles);
     try {
       final gallery = GalleryController(gid, token, host: uri.host);
       final data = await gallery.firstData();
@@ -99,6 +104,14 @@ class EH {
       int n = 0;
       for (int index in indexList) {
         n += 1;
+        if (hasFiles
+            .where((e) =>
+                e.indexOf((index + 1).toString().padLeft(3, '0') + '-') == 0)
+            .isNotEmpty) {
+          state.progressCurrent = n;
+          log.debug("[$gid/$token/$index] SKIP, Image exists $n");
+          continue;
+        }
         final item = await gallery.getImageInfo(index);
         final imageInfo =
             await item.getImageInfo({'eh_gid': gid, 'eh_token': token});
@@ -107,11 +120,11 @@ class EH {
         rawFileName ??= '.unknown';
 
         final fileName =
-            '${imageInfo.currentPage.toString().padLeft(3, '0')}-$rawFileName';
+            '${(index + 1).toString().padLeft(3, '0')}-$rawFileName';
         log.info(
             "[$gid/$token/$index] ($n/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
         await getDio().download(
-            imageInfo.image, p.join(galleryDir.path, fileName),
+            imageInfo.image, p.join(galleryDir.path, fileName) + '.tmp',
             onReceiveProgress: (int count, int total) {
           state.imageDownloadTotal = total;
           state.imageDownloadCount = count;
@@ -119,6 +132,8 @@ class EH {
         },
             options: Options(
                 extra: {'eh_gid': gid, 'eh_token': token, 'eh_index': index}));
+        File(p.join(galleryDir.path, fileName) + '.tmp')
+            .renameSync(p.join(galleryDir.path, fileName));
         state.retry = false;
         state.progressCurrent = n;
         state.imageDownloadTotal = 0;
@@ -272,8 +287,8 @@ extension GalleryItemEx on GalleryItem {
   Future<GalleryImage> getImageInfo(Map<String, dynamic>? extra) async {
     final controller = getScraperController();
     Uri uri = Uri.parse(href);
-    if(EH.lofiImage && uri.pathSegments.first == 's') {
-        uri = uri.replace(pathSegments: ['lofi', ...uri.pathSegments]);
+    if (EH.lofiImage && uri.pathSegments.first == 's') {
+      uri = uri.replace(pathSegments: ['lofi', ...uri.pathSegments]);
     }
     return controller
         .loadUri(uri, extra)
@@ -287,9 +302,3 @@ dynamic myEncode(dynamic item) {
   }
   return item;
 }
-
-
-
-
-
-

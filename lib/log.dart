@@ -11,8 +11,9 @@ class MyPrettyPrinter extends LoggyPrinter {
     this.showColors,
   }) : super() {
     final logDir = Directory(p.join(Directory.current.path, 'logs'));
-    if(!logDir.existsSync()) logDir.createSync(recursive: true);
-    final time = DateTime.now().toIso8601String().replaceAll(RegExp(r"[\s_:]"), '-');
+    if (!logDir.existsSync()) logDir.createSync(recursive: true);
+    final time =
+        DateTime.now().toIso8601String().replaceAll(RegExp(r"[\s_:T\.]"), '-');
     final logFile = File(p.join(logDir.path, 'eh-$time.log'));
     logFileHandle = logFile.openWrite(mode: FileMode.append);
   }

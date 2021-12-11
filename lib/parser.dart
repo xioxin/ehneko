@@ -20,4 +20,3 @@ ScraperController getScraperController() {
   controller!.addYamlRules(ruleFile.readAsStringSync());
   return controller!;
 }
-
