@@ -64,9 +64,7 @@ class EH {
       galleryDir.createSync(recursive: true);
     } else {
       if (EH.force) {
-        log.info("[$gid/$token] File already exists. Delete file !!!");
-        galleryDir.deleteSync(recursive: true);
-        galleryDir.createSync(recursive: true);
+        log.info("[$gid/$token] File already exists. Fix file !!!");
       }
     }
     final stateFile = File(p.join(galleryDir.path, 'state.json'));
