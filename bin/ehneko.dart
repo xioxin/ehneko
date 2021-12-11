@@ -1,21 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
-
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
-import 'package:dio/adapter.dart';
-import 'package:dio/dio.dart';
 import 'package:eh/display.dart';
 import 'package:eh/eh.dart';
 import 'package:eh/log.dart';
 import 'package:eh/parser.dart';
-import 'package:eh/range.dart';
-import 'package:queue/queue.dart';
-import 'package:scraper/scraper.dart';
-import 'package:path/path.dart' as p;
-
-import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:loggy/loggy.dart';
 
 List<String>? runArguments;
@@ -67,7 +56,7 @@ class BatchCommand extends Command {
         help:
             '图片下载范围 (规则与--pages相同)',
         valueHelp: '0:4,-4:');
-    argParser.addFlag('lofi-image', negatable: false, help: '图片信息lofi下载（强制780x）');
+    argParser.addFlag('lofi-image', negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
   }
 
@@ -98,7 +87,7 @@ class GalleryCommand extends Command {
         help:
             '图片下载范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
         valueHelp: '0:4,-4:');
-    argParser.addFlag('lofi-image', negatable: false, help: '图片信息lofi下载（强制780x）');
+    argParser.addFlag('lofi-image', negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
   }
 
