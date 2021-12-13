@@ -125,7 +125,7 @@ Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
 
 User _$UserFromJson(Map<String, dynamic> json) => User(
       json['name'] as String,
-      json['href'] as String,
+      json['href'] as String?,
     );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{

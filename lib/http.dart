@@ -106,8 +106,7 @@ Dio getDio() {
   };
 
   final cookieJar = CookieJar();
-
-  final cookieList = <Cookie>[Cookie('sl', 'dm_2')];
+  final cookieList = <Cookie>[Cookie('sl', 'dm_2'), Cookie('nw', '1')];
   if (EH.cookie != null) {
     cookieList.addAll(EH.cookie!
         .split(';')
@@ -200,8 +199,10 @@ class EhCooler extends Interceptor {
       if (result.stderr is String) {
         log.error('${result.stderr}');
       }
+      log.debug('🧊 Exit Code: ${result.exitCode}');
       if (result.exitCode != 0) {
-        log.debug('🧊 Exit Code: ${result.exitCode}');
+        await Future.delayed(Duration(milliseconds: 500));
+        exit(1);
       }
       cooler = null;
     } else {
