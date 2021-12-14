@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:eh/display.dart';
 import 'package:eh/eh.dart';
 import 'package:eh/log.dart';
+import 'package:eh/model/state.dart';
 import 'package:eh/parser.dart';
 import 'package:loggy/loggy.dart';
+import 'package:path/path.dart' as p;
 
 List<String>? runArguments;
 
@@ -62,7 +65,7 @@ class BatchCommand extends Command {
   }
 
   @override
-  void run() {
+  void run() async {
     Loggy.initLoggy(logPrinter: MyPrettyPrinter());
     Display.init();
     log.info("Application Launching. arguments: $runArguments");
@@ -72,8 +75,9 @@ class BatchCommand extends Command {
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
     EH.lofiImage = argResults!['lofi-image'] ?? false;
-
-    EH.downloadList(argResults!['link'], range: argResults!['pages']);
+    await EH.downloadList(argResults!['link'], range: argResults!['pages']);
+    await Future.delayed(Duration(milliseconds: 200));
+    safeExit(0);
   }
 }
 
@@ -96,7 +100,7 @@ class GalleryCommand extends Command {
   }
 
   @override
-  void run() {
+  void run() async {
     Loggy.initLoggy(logPrinter: MyPrettyPrinter());
     Display.init();
     log.info("Application Launching. arguments: $runArguments");
@@ -104,7 +108,10 @@ class GalleryCommand extends Command {
     loadCommonResults(argResults!);
     EH.imageRange = argResults!['range'];
     EH.lofiImage = argResults!['lofi-image'] ?? false;
-    EH.downloadGallery(argResults!['link'], imageRange: EH.imageRange);
+    final ok = await EH.downloadGallery(argResults!['link'],
+        imageRange: EH.imageRange);
+    await Future.delayed(Duration(milliseconds: 200));
+    safeExit(ok ? 0 : 1);
   }
 }
 
@@ -115,12 +122,64 @@ class FixCommand extends Command {
   final description = "重新下载失败的画廊";
 
   FixCommand() {
+    argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
+    argParser.addFlag('lofi-image',
+        negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
   }
 
   @override
-  void run() {
-    // todo!
+  void run() async {
+    Loggy.initLoggy(logPrinter: MyPrettyPrinter());
+    Display.init();
+    log.info("Application Launching. arguments: $runArguments");
+    log.info("Start time: ${DateTime.now()}");
+
+    EH.parallel = int.tryParse(argResults!['parallel'] ?? '1');
+    EH.lofiImage = argResults!['lofi-image'] ?? false;
+    loadCommonResults(argResults!);
+    final dirs = EH.outputDir
+        .listSync()
+        .where((v) {
+          if (v is Directory) {
+            final stateFile = File(p.join(v.path, 'state.json'));
+            if (!stateFile.existsSync()) return false;
+            try {
+              final state = EhState.fromJson(
+                  JsonDecoder().convert(stateFile.readAsStringSync()));
+              return !state.complete;
+            } catch (e) {
+              return false;
+            }
+          }
+          return false;
+        })
+        .cast<Directory>()
+        .toList();
+    log.debug(
+        "To be repaired: ${dirs.map((e) => p.basename(e.path)).join(',')}");
+    EhState.subListPageTotal = dirs.length;
+    int n = 0;
+    for (Directory dir in dirs) {
+      EH.queue.add(() async {
+        final stateFile = File(p.join(dir.path, 'state.json'));
+        final state = EhState.fromJson(
+            JsonDecoder().convert(stateFile.readAsStringSync()));
+        late String href;
+        if (state.link != null) {
+          href = state.link!;
+        } else {
+          href = "https://e-hentai.org/g/${state.gid}/${state.token}";
+        }
+        await EH.downloadGallery(href, imageRange: state.range);
+        n++;
+        EhState.subListPageCount = n;
+        Display.flashState();
+      });
+    }
+    await EH.queue.onComplete;
+    await Future.delayed(Duration(milliseconds: 200));
+    safeExit(0);
   }
 }
 

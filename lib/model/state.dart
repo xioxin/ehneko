@@ -26,7 +26,6 @@ class EhState extends Object {
   static bool cooling = false;
   static DateTime? coolDownTime;
 
-
   int gid;
   String token;
   bool complete;
@@ -34,6 +33,7 @@ class EhState extends Object {
   String? errorMsg;
   String? stackTrace;
   String? range;
+  String? link;
 
   @JsonKey(ignore: true)
   File? stateFile;
@@ -69,6 +69,7 @@ class EhState extends Object {
     this.stackTrace,
     this.range,
     this.stateFile,
+    this.link,
   });
 
   save() async {

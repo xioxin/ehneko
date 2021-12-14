@@ -85,17 +85,24 @@ class EH {
       error: false,
       range: imageRange,
       stateFile: stateFile,
+      link: uri.toString(),
     );
     await state.save();
     queueStateList.add(state);
     Display.flashState();
-    final hasFiles =
-        galleryDir.listSync().map((e) => p.basename(e.path)).toList();
+    final hasFiles = galleryDir
+        .listSync()
+        .map((e) => p.basename(e.path))
+        .where((name) => name.substring(name.length - 4, name.length) != '.tmp')
+        .toList();
     try {
       final gallery = GalleryController(gid, token, host: uri.host);
       final data = await gallery.firstData();
       final length = data.length;
       log.info("[$gid/$token] ${data.title}");
+      log.info("[$gid/$token] Save Meta Data");
+      metaFile.writeAsStringSync(JsonEncoder.withIndent('  ', myEncode)
+          .convert(await gallery.getMixData()));
       final indexList = getRange(imageRange, length: length);
       state.title = data.title;
       state.progressLength = indexList.length;
@@ -107,7 +114,7 @@ class EH {
                 e.indexOf((index + 1).toString().padLeft(3, '0') + '-') == 0)
             .isNotEmpty) {
           state.progressCurrent = n;
-          log.debug("[$gid/$token/$index] SKIP, Image exists $n");
+          log.info("[$gid/$token/$index] SKIP, Image exists $n");
           continue;
         }
         final item = await gallery.getImageInfo(index);
@@ -138,13 +145,11 @@ class EH {
         state.imageDownloadCount = 0;
         Display.flashState();
       }
-      log.info("[$gid/$token] Save Meta Data");
-      metaFile.writeAsStringSync(JsonEncoder.withIndent('  ', myEncode)
-          .convert(await gallery.getMixData()));
       state.complete = true;
       EhState.countComplete++;
       await state.save();
       Display.flashState();
+      return true;
     } catch (e, stacktrace) {
       log.error("[$gid/$token] $e", e, stacktrace);
       state.error = true;
@@ -152,6 +157,7 @@ class EH {
       state.errorMsg = e.toString();
       state.stackTrace = stacktrace.toString();
       await state.save();
+      return false;
     }
   }
 

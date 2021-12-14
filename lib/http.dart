@@ -142,7 +142,7 @@ class EhCooler extends Interceptor {
     if (response.data is String) {
       final String body = response.data;
       // "Your IP address has been temporarily banned for excessive pageloads which indicates that you are using automated
-      //mirroring/harvesting software. The ban expires in 55 minutes and 47 seconds";
+      // mirroring/harvesting software. The ban expires in 55 minutes and 47 seconds";
       // expires in 1 days and 20 hours
       final ipBan =
           body.contains("Your IP address has been temporarily banned");
@@ -151,7 +151,7 @@ class EhCooler extends Interceptor {
         if (shutdown) {
           log.error("🧊 !!shutdown!!");
           await Future.delayed(Duration(milliseconds: 500));
-          exit(1);
+          safeExit(1);
         } else {
           EhState.cooling = true;
           Display.flashState();
@@ -162,7 +162,7 @@ class EhCooler extends Interceptor {
           if (extra['_cooling_attempt'] > 5) {
             log.error("🧊 Too many retries");
             await Future.delayed(Duration(milliseconds: 500));
-            exit(1);
+            safeExit(1);
           }
           extra['_cooling_attempt']++;
           await waitForCooling(body);
@@ -202,7 +202,7 @@ class EhCooler extends Interceptor {
       log.debug('🧊 Exit Code: ${result.exitCode}');
       if (result.exitCode != 0) {
         await Future.delayed(Duration(milliseconds: 500));
-        exit(1);
+        safeExit(1);
       }
       cooler = null;
     } else {

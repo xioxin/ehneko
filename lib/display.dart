@@ -113,8 +113,11 @@ class Display {
     final count = EhState.listData?.count;
     final ep = EhState.listData?.endPage;
     final countText = count != null ? " <TOT:$count,PT:$ep>" : '';
-    final pageInfo =
-        "[${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}]";
+    String pageInfo = "";
+    if (EhState.nowListUrl != null) {
+      pageInfo =
+          "[${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}]";
+    }
     final subCount =
         "(${EhState.subListPageCount}/${EhState.subListPageTotal})";
 

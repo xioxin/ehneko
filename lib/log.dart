@@ -4,9 +4,9 @@ import 'package:loggy/loggy.dart';
 
 import 'display.dart';
 
-class MyPrettyPrinter extends LoggyPrinter {
-  late IOSink logFileHandle;
+IOSink? logFileHandle;
 
+class MyPrettyPrinter extends LoggyPrinter {
   MyPrettyPrinter({
     this.showColors,
   }) : super() {
@@ -51,10 +51,10 @@ class MyPrettyPrinter extends LoggyPrinter {
     final _color =
         _colorize ? levelColor(record.level) ?? AnsiColor() : AnsiColor();
     final _prefix = levelPrefix(record.level) ?? _defaultPrefix;
-    logFileHandle.writeln(
+    logFileHandle?.writeln(
         '$_prefix$_time $_logLevel ${record.loggerName} $_callerFrame ${record.message}');
     if (record.stackTrace != null) {
-      logFileHandle.writeln(record.stackTrace);
+      logFileHandle?.writeln(record.stackTrace);
     }
   }
 
@@ -100,3 +100,9 @@ class GlobalLoggy implements LoggyType {
 }
 
 Loggy get log => Loggy<GlobalLoggy>('EhNeko');
+
+safeExit([int code = 0]) async {
+  log.debug("safeExti: $code");
+  await logFileHandle?.close();
+  exit(code);
+}
