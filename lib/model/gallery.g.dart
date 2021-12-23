@@ -18,7 +18,7 @@ Gallery _$GalleryFromJson(Map<String, dynamic> json) => Gallery(
       json['language'] as String?,
       json['fileSize'] as String?,
       json['length'] as int,
-      json['favcount'] as int,
+      json['favcount'] as int?,
       (json['rating'] as num).toDouble(),
       (json['tags'] as List<dynamic>)
           .map((e) => Tags.fromJson(e as Map<String, dynamic>))

@@ -346,6 +346,7 @@ class SelectorEvaluator extends ExpressionEvaluator {
       if (name == 'trim') return object.trim;
       if (name == 'contains') return object.contains;
       if (name == 'toInt') {
+        // todo: toInt 增加参数 如果为空的默认值
         return () => int.tryParse(object.replaceAll(',', ''));
       }
       if (name == 'toDouble') return () => double.tryParse(object);
