@@ -26,19 +26,18 @@ addCommonCommand(ArgParser argParser) {
   argParser.addFlag('force', negatable: false, abbr: 'f', help: '覆盖已有数据');
   argParser.addFlag('no-proxy', negatable: false, abbr: 'P', help: '禁用代理');
   argParser.addOption('proxy',
-      valueHelp: '172.0.0.1:8080', help: '代理链接，默认使用环境变量的HTTP_PROXY');
+      valueHelp: 'http://172.0.0.1:8080', help: '代理链接，默认使用环境变量的HTTP_PROXY');
   argParser.addOption('banned-command', help: "ip被封禁时执行指令");
-  argParser.addFlag('banned-shutdown', help: "ip被封禁时终止程序");
+  argParser.addFlag('banned-shutdown', negatable: false, help: "ip被封禁时终止程序");
 }
 
 loadCommonResults(ArgResults argResults) {
-    EH.noProxy = argResults['no-proxy'];
-    EH.proxy = argResults['proxy'];
-    EH.domainFronting = argResults['domain-fronting'];
-    EH.cookie = argResults['cookie'];
-
-    EH.bannedCommand = argResults['banned-command'];
-    EH.bannedShutdown = argResults['banned-shutdown'];
+  EH.noProxy = argResults['no-proxy'];
+  EH.proxy = argResults['proxy'];
+  EH.domainFronting = argResults['domain-fronting'];
+  EH.cookie = argResults['cookie'];
+  EH.bannedCommand = argResults['banned-command'];
+  EH.bannedShutdown = argResults['banned-shutdown'];
 }
 
 class BatchCommand extends Command {
@@ -49,14 +48,16 @@ class BatchCommand extends Command {
 
   BatchCommand() {
     argParser.addOption('link', abbr: 'l', help: '提供一个搜索页面地址', mandatory: true);
-    argParser.addOption('pages', abbr: 'p', help: '页码范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>', valueHelp: '0:9');
+    argParser.addOption('pages',
+        abbr: 'p',
+        help:
+            '页码范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
+        valueHelp: '0:9');
     argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
     argParser.addOption('range',
-        abbr: 'r',
-        help:
-            '图片下载范围 (规则与--pages相同)',
-        valueHelp: '0:4,-4:');
-    argParser.addFlag('lofi-image', negatable: false, help: '图片信息通过lofi加载（强制780x）');
+        abbr: 'r', help: '图片下载范围 (规则与--pages相同)', valueHelp: '0:4,-4:');
+    argParser.addFlag('lofi-image',
+        negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
   }
 
@@ -66,10 +67,12 @@ class BatchCommand extends Command {
     Display.init();
     log.info("Application Launching. arguments: $runArguments");
     log.info("Start time: ${DateTime.now()}");
+    loadCommonResults(argResults!);
     EH.parallel = int.tryParse(argResults!['parallel'] ?? '');
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
     EH.lofiImage = argResults!['lofi-image'] ?? false;
+
     EH.downloadList(argResults!['link'], range: argResults!['pages']);
   }
 }
@@ -87,7 +90,8 @@ class GalleryCommand extends Command {
         help:
             '图片下载范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
         valueHelp: '0:4,-4:');
-    argParser.addFlag('lofi-image', negatable: false, help: '图片信息通过lofi加载（强制780x）');
+    argParser.addFlag('lofi-image',
+        negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
   }
 
@@ -97,6 +101,7 @@ class GalleryCommand extends Command {
     Display.init();
     log.info("Application Launching. arguments: $runArguments");
     log.info("Start time: ${DateTime.now()}");
+    loadCommonResults(argResults!);
     EH.imageRange = argResults!['range'];
     EH.lofiImage = argResults!['lofi-image'] ?? false;
     EH.downloadGallery(argResults!['link'], imageRange: EH.imageRange);
@@ -133,12 +138,8 @@ class JsonCommand extends Command {
   @override
   void run() async {
     try {
-      EH.noProxy = argResults!['no-proxy'];
-      EH.proxy = argResults!['proxy'];
-      EH.domainFronting = argResults!['domain-fronting'];
-      EH.cookie = argResults!['cookie'];
+      loadCommonResults(argResults!);
       final uri = Uri.parse(argResults!['link']);
-      print(uri);
       final controller = getScraperController();
       final parser = await controller.loadUri(uri);
       print(JsonEncoder.withIndent('  ', myEncode).convert(parser.parse()));

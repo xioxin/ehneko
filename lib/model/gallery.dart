@@ -96,7 +96,7 @@ class Uploader extends Object {
   @JsonKey(name: 'href')
   String href;
 
-  Uploader(this.name, this.href );
+  Uploader(this.name, this.href);
 
   factory Uploader.fromJson(Map<String, dynamic> srcJson) =>
       _$UploaderFromJson(srcJson);
@@ -211,7 +211,7 @@ class User extends Object {
   String name;
 
   @JsonKey(name: 'href')
-  String href;
+  String? href;
 
   User(
     this.name,
@@ -260,7 +260,6 @@ class GalleryImage extends Object {
 
 @JsonSerializable()
 class GalleryList extends Object {
-
   @JsonKey(name: 'count')
   int count;
 

@@ -11,6 +11,7 @@ import 'package:eh/log.dart';
 import 'package:dio_domain_fronting/dio_domain_fronting.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:collection/collection.dart';
+import 'package:eh/model/state.dart';
 import 'eh.dart';
 
 Dio? dio;
@@ -62,9 +63,7 @@ Dio getDio() {
 
   dio!.interceptors.add(retryInterceptor);
 
-  dio!.options.sendTimeout = 1000 * 30;
   dio!.options.connectTimeout = 1000 * 30;
-  dio!.options.receiveTimeout = 1000 * 30;
   dio!.options.headers = {
     'accept-encoding': 'gzip, deflate, br',
     'Accept-Language': 'en-US,en;q=0.5',
@@ -107,8 +106,7 @@ Dio getDio() {
   };
 
   final cookieJar = CookieJar();
-
-  final cookieList = <Cookie>[Cookie('sl', 'dm_2')];
+  final cookieList = <Cookie>[Cookie('sl', 'dm_2'), Cookie('nw', '1')];
   if (EH.cookie != null) {
     cookieList.addAll(EH.cookie!
         .split(';')
@@ -149,12 +147,27 @@ class EhCooler extends Interceptor {
       final ipBan =
           body.contains("Your IP address has been temporarily banned");
       if (ipBan) {
-        log.warning("🤚 Your IP address has been temporarily banned");
+        log.warning("🤚 " + body.replaceAll(RegExp('<.+?>'), ''));
         if (shutdown) {
-          log.error(body.replaceAll(RegExp('<.+?>'), ''));
+          log.error("🧊 !!shutdown!!");
+          await Future.delayed(Duration(milliseconds: 500));
           exit(1);
         } else {
+          EhState.cooling = true;
+          Display.flashState();
+          final extra = response.requestOptions.extra;
+          if (extra['_cooling_attempt'] == null) {
+            extra['_cooling_attempt'] = 0;
+          }
+          if (extra['_cooling_attempt'] > 5) {
+            log.error("🧊 Too many retries");
+            await Future.delayed(Duration(milliseconds: 500));
+            exit(1);
+          }
+          extra['_cooling_attempt']++;
           await waitForCooling(body);
+          EhState.cooling = false;
+          Display.flashState();
         }
         try {
           await dio
@@ -164,7 +177,6 @@ class EhCooler extends Interceptor {
           handler.reject(e);
         }
       }
-      return;
     }
     handler.next(response);
   }
@@ -173,6 +185,7 @@ class EhCooler extends Interceptor {
     cooler ??= _waitForCooling(body);
     return cooler;
   }
+
   _waitForCooling(String body) async {
     if (command != null) {
       final commandList = command!.split(' ').toList();
@@ -186,8 +199,10 @@ class EhCooler extends Interceptor {
       if (result.stderr is String) {
         log.error('${result.stderr}');
       }
+      log.debug('🧊 Exit Code: ${result.exitCode}');
       if (result.exitCode != 0) {
-        log.debug('🧊 ExitCode: ${result.exitCode}');
+        await Future.delayed(Duration(milliseconds: 500));
+        exit(1);
       }
       cooler = null;
     } else {
@@ -199,9 +214,9 @@ class EhCooler extends Interceptor {
               minutes: int.parse(minute),
               seconds: int.parse(second)) +
           Duration(minutes: 5);
+      EhState.coolDownTime = DateTime.now().subtract(delay);
       await Future.delayed(delay);
       cooler = null;
     }
   }
-
 }

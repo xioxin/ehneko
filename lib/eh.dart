@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 import 'package:eh/display.dart';
 import 'package:eh/parser.dart';
 import 'package:eh/range.dart';
-import 'package:loggy/loggy.dart';
 import 'package:path/path.dart' as p;
 import 'package:queue/queue.dart';
 
@@ -64,7 +63,7 @@ class EH {
       galleryDir.createSync(recursive: true);
     } else {
       if (EH.force) {
-        log.info("[$gid/$token] File already exists. Delete file !!!");
+        log.info("[$gid/$token] File already exists. Del file !!!");
         galleryDir.deleteSync(recursive: true);
         galleryDir.createSync(recursive: true);
       }
@@ -90,6 +89,8 @@ class EH {
     await state.save();
     queueStateList.add(state);
     Display.flashState();
+    final hasFiles =
+        galleryDir.listSync().map((e) => p.basename(e.path)).toList();
     try {
       final gallery = GalleryController(gid, token, host: uri.host);
       final data = await gallery.firstData();
@@ -101,6 +102,14 @@ class EH {
       int n = 0;
       for (int index in indexList) {
         n += 1;
+        if (hasFiles
+            .where((e) =>
+                e.indexOf((index + 1).toString().padLeft(3, '0') + '-') == 0)
+            .isNotEmpty) {
+          state.progressCurrent = n;
+          log.debug("[$gid/$token/$index] SKIP, Image exists $n");
+          continue;
+        }
         final item = await gallery.getImageInfo(index);
         final imageInfo =
             await item.getImageInfo({'eh_gid': gid, 'eh_token': token});
@@ -109,11 +118,11 @@ class EH {
         rawFileName ??= '.unknown';
 
         final fileName =
-            '${imageInfo.currentPage.toString().padLeft(3, '0')}-$rawFileName';
+            '${(index + 1).toString().padLeft(3, '0')}-$rawFileName';
         log.info(
             "[$gid/$token/$index] ($n/${indexList.length}) Download Image ${imageInfo.image} => $fileName");
         await getDio().download(
-            imageInfo.image, p.join(galleryDir.path, fileName),
+            imageInfo.image, p.join(galleryDir.path, fileName) + '.tmp',
             onReceiveProgress: (int count, int total) {
           state.imageDownloadTotal = total;
           state.imageDownloadCount = count;
@@ -121,6 +130,8 @@ class EH {
         },
             options: Options(
                 extra: {'eh_gid': gid, 'eh_token': token, 'eh_index': index}));
+        File(p.join(galleryDir.path, fileName) + '.tmp')
+            .renameSync(p.join(galleryDir.path, fileName));
         state.retry = false;
         state.progressCurrent = n;
         state.imageDownloadTotal = 0;
@@ -183,30 +194,39 @@ class EH {
   }
 
   static downloadListPage(Uri uri) async {
-    log.info("[${uri.toString()}] Load list");
-    final controller = getScraperController();
-    final parser = await controller.loadUri(uri);
-    final galleryList = GalleryList.fromJson(parser.parse()!);
-    EhState.listData = galleryList;
-    int n = 0;
-    EhState.subListPageTotal = galleryList.items.length;
-    EhState.subListPageCount = 0;
-    Display.flashState();
-    if (galleryList.items.isEmpty) {
-      log.error("[${uri.toString()}] Gallery list is empty");
+    String? rawData;
+    try {
+      log.info("[${uri.toString()}] Load list");
+      final controller = getScraperController();
+      final parser = await controller.loadUri(uri);
+      rawData = parser.data;
+      final galleryList = GalleryList.fromJson(parser.parse()!);
+      EhState.listData = galleryList;
+      int n = 0;
+      EhState.subListPageTotal = galleryList.items.length;
+      EhState.subListPageCount = 0;
+      Display.flashState();
+      if (galleryList.items.isEmpty) {
+        log.error("[${uri.toString()}] Gallery list is empty");
+      }
+      for (var item in galleryList.items) {
+        queue.add(() async {
+          await downloadGallery(item.href, imageRange: EH.imageRange);
+          n++;
+          EhState.subListPageCount = n;
+          Display.flashState();
+        });
+      }
+      await queue.onComplete;
+      EhState.subListPageTotal = 0;
+      EhState.subListPageCount = 0;
+      Display.flashState();
+    } catch (e) {
+      if (rawData != null) {
+        log.debug("RawHtml: $uri\n" + rawData);
+      }
+      rethrow;
     }
-    for (var item in galleryList.items) {
-      queue.add(() async {
-        await downloadGallery(item.href, imageRange: EH.imageRange);
-        n++;
-        EhState.subListPageCount = n;
-        Display.flashState();
-      });
-    }
-    await queue.onComplete;
-    EhState.subListPageTotal = 0;
-    EhState.subListPageCount = 0;
-    Display.flashState();
   }
 }
 
@@ -226,22 +246,31 @@ class GalleryController {
     return firstRawData;
   }
 
-  Future<Gallery> load([int pageIndex = 0]) {
-    final controller = getScraperController();
+  Future<Gallery> load([int pageIndex = 0]) async {
+    String? rawData = '';
+    Uri uri = Uri.parse("https://$host/g/$gid/$token/");
     if (rawPageDataFuture.containsKey(pageIndex)) {
       return rawPageDataFuture[pageIndex]!;
     }
-    Uri uri = Uri.parse("https://$host/g/$gid/$token/");
-    if (pageIndex > 0) {
-      uri = uri.replace(query: 'p=$pageIndex');
+    try {
+      final controller = getScraperController();
+      if (pageIndex > 0) {
+        uri = uri.replace(query: 'p=$pageIndex');
+      }
+      rawPageDataFuture[pageIndex] = controller
+          .loadUri(uri, {"eh_gid": gid, "eh_token": token}).then((parser) {
+        rawData = parser.data;
+        final data = parser.parse();
+        if (pageIndex == 0) firstRawData = data;
+        return Gallery.fromJson(data!);
+      });
+      return await rawPageDataFuture[pageIndex]!;
+    } catch (e) {
+      if (rawData != null) {
+        log.debug("RawHtml: $uri\n" + rawData!);
+      }
+      rethrow;
     }
-    rawPageDataFuture[pageIndex] = controller
-        .loadUri(uri, {"eh_gid": gid, "eh_token": token}).then((parser) {
-      final data = parser.parse();
-      if (pageIndex == 0) firstRawData = data;
-      return Gallery.fromJson(data!);
-    });
-    return rawPageDataFuture[pageIndex]!;
   }
 
   Future<Gallery> firstData() => load(0);
@@ -272,14 +301,23 @@ class GalleryController {
 
 extension GalleryItemEx on GalleryItem {
   Future<GalleryImage> getImageInfo(Map<String, dynamic>? extra) async {
-    final controller = getScraperController();
     Uri uri = Uri.parse(href);
-    if(EH.lofiImage && uri.pathSegments.first == 's') {
+    String? rawData;
+    try {
+      final controller = getScraperController();
+      if (EH.lofiImage && uri.pathSegments.first == 's') {
         uri = uri.replace(pathSegments: ['lofi', ...uri.pathSegments]);
+      }
+      return await controller.loadUri(uri, extra).then((parser) {
+        rawData = parser.data;
+        return GalleryImage.fromJson(parser.parse()!);
+      });
+    } catch (e) {
+      if (rawData != null) {
+        log.debug("RawHtml: $uri\n" + rawData!);
+      }
+      rethrow;
     }
-    return controller
-        .loadUri(uri, extra)
-        .then((parser) => GalleryImage.fromJson(parser.parse()!));
   }
 }
 
@@ -289,9 +327,3 @@ dynamic myEncode(dynamic item) {
   }
   return item;
 }
-
-
-
-
-
-
