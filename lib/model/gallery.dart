@@ -35,7 +35,7 @@ class Gallery extends Object {
   int length;
 
   @JsonKey(name: 'favcount')
-  int favcount;
+  int? favcount;
 
   @JsonKey(name: 'rating')
   double rating;
