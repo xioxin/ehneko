@@ -42,21 +42,24 @@ rules:
     type: html
     selectors:
       - id: count
-        selector: p.ip
+        selector: div.ido div.searchtext > p
         regex: ([\d,]+)
         expression: $1.toInt()
-      - id: currentPage
-        selector: td.ptds a
-        expression: value.toInt()
-      - id: endPage
-        selector: .ptt td
-        multiple: true
-        children: 
-          - id: page
-            selector: a
-            expression: value.toInt()
-            required: true
-        expression: value.last.page
+      - id: nextLink
+        selector: "#unext"
+        attribute: href
+      # - id: currentPage
+      #   selector: td.ptds a
+      #   expression: value.toInt()
+      # - id: endPage
+      #   selector: .ptt td
+      #   multiple: true
+      #   children: 
+      #     - id: page
+      #       selector: a
+      #       expression: value.toInt()
+      #       required: true
+        # expression: value.last.page
       - id: displayMode
         type: element
         selector: "#dms option[selected]"

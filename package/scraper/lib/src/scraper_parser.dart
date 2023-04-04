@@ -36,12 +36,12 @@ class ScraperParser {
     final startTime = DateTime.now();
     final rootId = rule.selectorRoot;
     if (rule.type == RuleDataType.html) {
-      assert(windowController.window?.document.documentElement != null);
+      assert(windowController.window.document.documentElement != null);
       final rootSelector = selectorList
           .where((e) => e.parents?.contains(rootId) ?? rootId == null)
           .toList();
       final data = parseElementMap(
-          windowController.window!.document.documentElement!, rootSelector);
+          windowController.window.document.documentElement!, rootSelector);
       parsingTime = DateTime.now().difference(startTime);
       return data;
     } else if (rule.type == RuleDataType.json) {
@@ -306,7 +306,7 @@ class ScraperParser {
 
   Map<String, dynamic> get expressionFunctions {
     return {
-      "document": windowController.window!.document,
+      "document": windowController.window.document,
       "RegExp": (String from, [String? flags]) {
         final multiLine = flags?.toLowerCase().contains('m') ?? false;
         final caseSensitive = !(flags?.toLowerCase().contains('i') ?? false);

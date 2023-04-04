@@ -1,6 +1,6 @@
 name: eh
 description: 嗯了
-version: 1.0.2
+version: 1.0.3
 # homepage: https://www.example.com
 publish_to: none
 
@@ -15,7 +15,7 @@ dependencies:
   dio: ^4.0.0
   dio_domain_fronting: 
     path: ./package/dio_domain_fronting
-  json_annotation: ^4.1.0
+  json_annotation: ^4.8.0
   dio_cookie_manager: ^2.0.0
   cookie_jar: 3.0.1
   loggy: ^2.0.1
@@ -31,4 +31,4 @@ dev_dependencies:
   lints: ^1.0.0
   test: ^1.16.0
   build_runner: ^2.0.0
-  json_serializable: ^5.0.0
+  json_serializable: ^6.6.1

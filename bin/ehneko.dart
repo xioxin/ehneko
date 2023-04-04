@@ -18,8 +18,17 @@ void main(List<String> arguments) async {
     ..addCommand(BatchCommand())
     ..addCommand(GalleryCommand())
     ..addCommand(FixCommand())
-    ..addCommand(JsonCommand())
-    ..run(arguments);
+    ..addCommand(JsonCommand());
+  try {
+    await runner.run(arguments);
+  } catch (e, s) {
+    if (e is UsageException) {
+      print(e.usage);
+    } else {
+      print(e);
+      print(s);
+    }
+  }
 }
 
 addCommonCommand(ArgParser argParser) {
@@ -51,14 +60,12 @@ class BatchCommand extends Command {
 
   BatchCommand() {
     argParser.addOption('link', abbr: 'l', help: '提供一个搜索页面地址', mandatory: true);
-    argParser.addOption('pages',
-        abbr: 'p',
-        help:
-            '页码范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
-        valueHelp: '0:9');
     argParser.addOption('parallel', abbr: 'm', help: '并行数量', valueHelp: '1');
     argParser.addOption('range',
-        abbr: 'r', help: '图片下载范围 (规则与--pages相同)', valueHelp: '0:4,-4:');
+        abbr: 'r',
+        help:
+            '图片下载范围 \n    <5> 第5个\n    <3:6> 3至6包含3和6 \n    <:4> 前5个 \n    <-4:> 后5个 \n    <:> 全部 \n    多条规则之间使用<,>',
+        valueHelp: '0:4,-4:');
     argParser.addFlag('lofi-image',
         negatable: false, help: '图片信息通过lofi加载（强制780x）');
     addCommonCommand(argParser);
@@ -75,7 +82,7 @@ class BatchCommand extends Command {
     EH.imageRange = argResults!['range'];
     EH.force = argResults!['force'] ?? false;
     EH.lofiImage = argResults!['lofi-image'] ?? false;
-    await EH.downloadList(argResults!['link'], range: argResults!['pages']);
+    await EH.downloadList(argResults!['link']);
     await Future.delayed(Duration(milliseconds: 200));
     safeExit(0);
   }

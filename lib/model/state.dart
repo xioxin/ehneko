@@ -11,10 +11,7 @@ class EhState extends Object {
   toString() => "$gid/$token ($progressCurrent/$progressLength)";
 
   static String? nowListUrl;
-  static int? nowListPage;
-  static int listPageCount = 0;
-  static int listPageTotal = 0;
-
+  static String? next;
   static int subListPageCount = 0;
   static int subListPageTotal = 0;
 

@@ -14,6 +14,11 @@ import 'log.dart';
 import 'model/gallery.dart';
 import 'model/state.dart';
 
+class DownloadListReturn {
+  String? nextLink;
+  DownloadListReturn([this.nextLink]);
+}
+
 class EH {
   static Directory outputDir =
       Directory(p.join(Directory.current.path, 'output'));
@@ -161,45 +166,30 @@ class EH {
     }
   }
 
-  static downloadList(String url, {String? range}) async {
-    final uri = Uri.parse(url);
-    if (range == null) {
-      EhState.nowListUrl = uri.toString();
-      EhState.listPageTotal = 1;
-      EhState.listPageCount = 0;
+  static downloadList(String url) async {
+    int n = 0;
+    while (true) {
+      n = n + 1;
+      final uri = Uri.parse(url);
+      EhState.next = uri.queryParameters['next'];
+      EhState.nowListUrl = url;
       Display.flashState();
-      await downloadListPage(uri);
-      EhState.listPageCount = 1;
-      Display.flashState();
-    } else {
-      final controller = getScraperController();
-      final parser = await controller.loadUri(uri);
-      final galleryList = GalleryList.fromJson(parser.parse()!);
-      final List<int> indexList = getRange(range, length: galleryList.endPage);
-      EhState.listPageTotal = indexList.length;
-      int n = 0;
-      for (int index in indexList) {
-        n = n + 1;
-        final uri2 = uri.replace(queryParameters: {
-          ...uri.queryParameters,
-          'page': index.toString()
-        });
-        EhState.nowListPage = index;
-        EhState.nowListUrl = uri2.toString();
-        Display.flashState();
-        await downloadListPage(uri2);
-        EhState.listPageCount = n;
-        Display.flashState();
-
-        // 清理任务状态 减少内存占用
-        EH.queueStateList = EH.queueStateList
-            .where((element) => element.complete == false)
-            .toList();
+      final status = await downloadListPage(uri);
+      if (status.nextLink != null) {
+        url = status.nextLink!;
+      } else {
+        return;
       }
+      // EhState.listPageCount = n;
+      Display.flashState();
+      // 清理任务状态 减少内存占用
+      EH.queueStateList = EH.queueStateList
+          .where((element) => element.complete == false)
+          .toList();
     }
   }
 
-  static downloadListPage(Uri uri) async {
+  static Future<DownloadListReturn> downloadListPage(Uri uri) async {
     String? rawData;
     try {
       log.info("[${uri.toString()}] Load list");
@@ -214,6 +204,7 @@ class EH {
       Display.flashState();
       if (galleryList.items.isEmpty) {
         log.error("[${uri.toString()}] Gallery list is empty");
+        return DownloadListReturn();
       }
       for (var item in galleryList.items) {
         queue.add(() async {
@@ -227,6 +218,7 @@ class EH {
       EhState.subListPageTotal = 0;
       EhState.subListPageCount = 0;
       Display.flashState();
+      return DownloadListReturn(galleryList.nextLink);
     } catch (e) {
       if (rawData != null) {
         log.debug("RawHtml: $uri\n" + rawData);

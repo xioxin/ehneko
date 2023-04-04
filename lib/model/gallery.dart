@@ -263,11 +263,8 @@ class GalleryList extends Object {
   @JsonKey(name: 'count')
   int count;
 
-  @JsonKey(name: 'endPage')
-  int endPage;
-
-  @JsonKey(name: 'currentPage')
-  int? currentPage;
+  @JsonKey(name: 'nextLink')
+  String? nextLink;
 
   @JsonKey(name: 'displayMode')
   DisplayMode? displayMode;
@@ -276,9 +273,8 @@ class GalleryList extends Object {
   List<GalleryListItem> items;
 
   GalleryList(
-    this.endPage,
     this.count,
-    this.currentPage,
+    this.nextLink,
     this.displayMode,
     this.items,
   );

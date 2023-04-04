@@ -151,9 +151,8 @@ Map<String, dynamic> _$GalleryImageToJson(GalleryImage instance) =>
     };
 
 GalleryList _$GalleryListFromJson(Map<String, dynamic> json) => GalleryList(
-      json['endPage'] as int,
       json['count'] as int,
-      json['currentPage'] as int?,
+      json['nextLink'] as String?,
       json['displayMode'] == null
           ? null
           : DisplayMode.fromJson(json['displayMode'] as Map<String, dynamic>),
@@ -165,8 +164,7 @@ GalleryList _$GalleryListFromJson(Map<String, dynamic> json) => GalleryList(
 Map<String, dynamic> _$GalleryListToJson(GalleryList instance) =>
     <String, dynamic>{
       'count': instance.count,
-      'endPage': instance.endPage,
-      'currentPage': instance.currentPage,
+      'nextLink': instance.nextLink,
       'displayMode': instance.displayMode,
       'items': instance.items,
     };

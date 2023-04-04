@@ -111,12 +111,10 @@ class Display {
   static String batchStateString() {
     // if (EhState.nowListUrl == null) return "";
     final count = EhState.listData?.count;
-    final ep = EhState.listData?.endPage;
-    final countText = count != null ? " <TOT:$count,PT:$ep>" : '';
+    final countText = count != null ? " <TOT:$count>" : '';
     String pageInfo = "";
     if (EhState.nowListUrl != null) {
-      pageInfo =
-          "[${EhState.listPageCount}/${EhState.listPageTotal}; P:${EhState.nowListPage ?? '?'}]";
+      pageInfo = "[${EhState.next}]";
     }
     final subCount =
         "(${EhState.subListPageCount}/${EhState.subListPageTotal})";
